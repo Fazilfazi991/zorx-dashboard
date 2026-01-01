@@ -41,6 +41,19 @@ export interface Task {
   assignedTo?: string;
 }
 
+export interface Campaign {
+  id: string;
+  clientId: string;
+  name: string;
+  status: 'Planning' | 'Active' | 'Completed' | 'Paused';
+  budget: number;
+  spent: number;
+  startDate: string;
+  endDate: string;
+  platform: 'Google' | 'Meta' | 'TikTok' | 'LinkedIn' | 'Email';
+  kpi: string;
+}
+
 export interface Metric {
   label: string;
   value: string | number;

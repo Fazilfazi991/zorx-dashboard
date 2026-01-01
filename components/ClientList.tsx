@@ -1,12 +1,19 @@
 import React from 'react';
 import { Client } from '../types';
 import { ExternalLink, Activity } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface ClientListProps {
   clients: Client[];
 }
 
 const ClientList: React.FC<ClientListProps> = ({ clients }) => {
+  const navigate = useNavigate();
+
+  const handleViewTasks = (clientId: string) => {
+    navigate(`/tasks?client=${clientId}`);
+  };
+
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-nexus-card shadow-xl h-full">
       <div className="border-b border-white/10 bg-white/5 px-6 py-4 flex justify-between items-center">
@@ -54,10 +61,14 @@ const ClientList: React.FC<ClientListProps> = ({ clients }) => {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="rounded p-1 hover:bg-white/10 text-gray-400 hover:text-white">
+                    <button className="rounded p-1 hover:bg-white/10 text-gray-400 hover:text-white" title="View Analytics">
                       <Activity className="h-4 w-4" />
                     </button>
-                    <button className="rounded p-1 hover:bg-white/10 text-gray-400 hover:text-white">
+                    <button 
+                      onClick={() => handleViewTasks(client.id)}
+                      className="rounded p-1 hover:bg-white/10 text-gray-400 hover:text-white"
+                      title="View Tasks"
+                    >
                       <ExternalLink className="h-4 w-4" />
                     </button>
                   </div>

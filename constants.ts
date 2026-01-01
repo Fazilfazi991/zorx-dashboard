@@ -1,4 +1,4 @@
-import { Client, Priority, Status, Task, Team } from './types';
+import { Client, Priority, Status, Task, Team, Campaign } from './types';
 
 export const MOCK_CLIENTS: Client[] = [
   {
@@ -248,5 +248,68 @@ export const MOCK_TASKS: Task[] = [
     priority: Priority.MEDIUM,
     team: Team.CONTENT,
     dueDate: '2025-05-14',
+  }
+];
+
+export const MOCK_CAMPAIGNS: Campaign[] = [
+  {
+    id: 'cmp1',
+    clientId: 'c4', // Neonlight
+    name: 'Summer Glow 2025',
+    status: 'Active',
+    budget: 5000,
+    spent: 2150,
+    startDate: '2025-05-01',
+    endDate: '2025-06-30',
+    platform: 'Google',
+    kpi: 'ROAS 3.5'
+  },
+  {
+    id: 'cmp2',
+    clientId: 'c9', // Zappo
+    name: 'Clearance Sale Blitz',
+    status: 'Active',
+    budget: 10000,
+    spent: 8500,
+    startDate: '2025-04-15',
+    endDate: '2025-05-15',
+    platform: 'Meta',
+    kpi: 'CPA $12'
+  },
+  {
+    id: 'cmp3',
+    clientId: 'c10', // Styleloom
+    name: 'Fall Collection Teaser',
+    status: 'Planning',
+    budget: 15000,
+    spent: 0,
+    startDate: '2025-07-01',
+    endDate: '2025-08-15',
+    platform: 'TikTok',
+    kpi: 'Views 1M+'
+  },
+  {
+    id: 'cmp4',
+    clientId: 'c13', // Synops
+    name: 'Tech Leader Awareness',
+    status: 'Active',
+    budget: 8000,
+    spent: 1200,
+    startDate: '2025-05-01',
+    endDate: '2025-07-31',
+    platform: 'LinkedIn',
+    kpi: 'Leads 50+'
+  },
+  {
+    id: 'cmp5',
+    clientId: 'c3', // AudioPro
+    name: 'Audiophile Retargeting',
+    status: 'Paused',
+    budget: 3000,
+    spent: 540,
+    startDate: '2025-04-01',
+    endDate: '2025-05-31',
+    platform: 'Google',
+    kpi: 'Conv. Rate 2%'
   }
 ];

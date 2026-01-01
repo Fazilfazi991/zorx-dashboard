@@ -17,11 +17,12 @@ import {
   Code2,
   X
 } from 'lucide-react';
-import { MOCK_CLIENTS, MOCK_TASKS } from './constants';
-import { Client, Task, Status, Team } from './types';
+import { MOCK_CLIENTS, MOCK_TASKS, MOCK_CAMPAIGNS } from './constants';
+import { Client, Task, Status, Team, Campaign } from './types';
 import StatsCard from './components/StatsCard';
 import ClientList from './components/ClientList';
 import TaskBoard from './components/TaskBoard';
+import CampaignsView from './components/CampaignsView';
 import AICreator from './components/AICreator';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -147,24 +148,45 @@ const DashboardHome = ({ clients, tasks }: { clients: Client[], tasks: Task[] })
 const TasksPage = ({ tasks, clients, onStatusChange }: { tasks: Task[], clients: Client[], onStatusChange: (id: string, status: Status) => void }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const teamFilter = searchParams.get('team');
+  const clientFilter = searchParams.get('client');
 
-  const filteredTasks = teamFilter 
-    ? tasks.filter(t => t.team === teamFilter)
-    : tasks;
+  const filteredTasks = tasks.filter(t => {
+      if (teamFilter && t.team !== teamFilter) return false;
+      if (clientFilter && t.clientId !== clientFilter) return false;
+      return true;
+  });
+
+  const clientName = clientFilter ? clients.find(c => c.id === clientFilter)?.name : null;
+
+  const clearFilters = () => setSearchParams({});
 
   return (
     <div className="h-full flex flex-col space-y-6">
       <div className="flex justify-between items-center">
          <div className="flex items-center gap-4">
            <h2 className="text-2xl font-bold text-white">Task Board</h2>
-           {teamFilter && (
-             <button 
-               onClick={() => setSearchParams({})}
-               className="group flex items-center gap-2 bg-nexus-blue/10 hover:bg-nexus-blue/20 text-nexus-blueGlow px-3 py-1 rounded-full text-sm border border-nexus-blue/20 transition-all"
-             >
-               <span>{teamFilter}</span>
-               <X className="h-3 w-3 group-hover:text-white" />
-             </button>
+           
+           {(teamFilter || clientFilter) && (
+             <div className="flex gap-2">
+               {teamFilter && (
+                <button 
+                  onClick={clearFilters}
+                  className="group flex items-center gap-2 bg-nexus-blue/10 hover:bg-nexus-blue/20 text-nexus-blueGlow px-3 py-1 rounded-full text-sm border border-nexus-blue/20 transition-all"
+                >
+                  <span>Team: {teamFilter}</span>
+                  <X className="h-3 w-3 group-hover:text-white" />
+                </button>
+               )}
+               {clientName && (
+                <button 
+                  onClick={clearFilters}
+                  className="group flex items-center gap-2 bg-nexus-green/10 hover:bg-nexus-green/20 text-nexus-greenGlow px-3 py-1 rounded-full text-sm border border-nexus-green/20 transition-all"
+                >
+                  <span>Client: {clientName}</span>
+                  <X className="h-3 w-3 group-hover:text-white" />
+                </button>
+               )}
+             </div>
            )}
          </div>
          <button className="flex items-center gap-2 bg-nexus-blue text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-nexus-blueGlow transition-colors">
@@ -216,6 +238,7 @@ const SidebarLink = ({ to, icon: Icon, label }: { to: string, icon: any, label: 
 function App() {
   const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(MOCK_CAMPAIGNS);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
   const handleTaskStatusChange = (taskId: string, newStatus: Status) => {
@@ -311,6 +334,9 @@ function App() {
                       <h2 className="text-2xl font-bold text-white">Client Management</h2>
                       <ClientList clients={clients} />
                    </div>
+                } />
+                <Route path="/campaigns" element={
+                  <CampaignsView campaigns={campaigns} clients={clients} />
                 } />
                 <Route path="*" element={<DashboardHome clients={clients} tasks={tasks} />} />
               </Routes>

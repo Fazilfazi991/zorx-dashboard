@@ -5,7 +5,8 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateClientStrategy = async (clientName: string, industry: string): Promise<AIStrategyResponse | null> => {
   try {
-    const modelId = 'gemini-3-flash-preview';
+    // Using gemini-3-pro-preview for complex reasoning and structured output tasks
+    const modelId = 'gemini-3-pro-preview';
     const prompt = `
       You are a senior digital marketing strategist at Zorx Agency.
       Generate 3-5 high-impact actionable tasks for a client named "${clientName}" in the "${industry}" industry.
