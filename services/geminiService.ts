@@ -1,17 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIStrategyResponse, Priority, Team } from '../types';
 
-// Ensure API Key exists
-const apiKey = process.env.API_KEY || '';
-
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateClientStrategy = async (clientName: string, industry: string): Promise<AIStrategyResponse | null> => {
-  if (!apiKey) {
-    console.error("API Key is missing");
-    return null;
-  }
-
   try {
     const modelId = 'gemini-3-flash-preview';
     const prompt = `
