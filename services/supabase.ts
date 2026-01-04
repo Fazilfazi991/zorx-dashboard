@@ -1,9 +1,10 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Accessing via process.env which is replaced by Vite at build time
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+// Accessing via import.meta.env (Vite standard)
+// We cast to any to avoid TypeScript errors with import.meta
+const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey) 
