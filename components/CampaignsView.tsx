@@ -1,6 +1,7 @@
 import React from 'react';
 import { Campaign, Client } from '../types';
-import { Calendar, DollarSign, BarChart2, MoreHorizontal, Play, Pause, CheckCircle } from 'lucide-react';
+import { Calendar, BarChart2, MoreHorizontal, Play, Pause, CheckCircle, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface CampaignsViewProps {
   campaigns: Campaign[];
@@ -8,6 +9,7 @@ interface CampaignsViewProps {
 }
 
 const CampaignsView: React.FC<CampaignsViewProps> = ({ campaigns, clients }) => {
+  const navigate = useNavigate();
   const getClient = (id: string) => clients.find(c => c.id === id);
 
   const getStatusColor = (status: string) => {
@@ -46,8 +48,14 @@ const CampaignsView: React.FC<CampaignsViewProps> = ({ campaigns, clients }) => 
 
           return (
             <div key={campaign.id} className="group relative overflow-hidden rounded-xl border border-white/10 bg-nexus-card p-6 transition-all hover:border-nexus-blue/30 hover:shadow-lg hover:shadow-nexus-blue/5">
-              <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="text-gray-500 hover:text-white"><MoreHorizontal className="h-5 w-5" /></button>
+              <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <button 
+                    onClick={() => navigate(`/tasks?campaign=${campaign.id}`)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-nexus-black/80 hover:bg-nexus-blue/20 text-xs text-gray-400 hover:text-white border border-white/10 transition-colors"
+                >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Tasks
+                </button>
               </div>
 
               {/* Header */}
