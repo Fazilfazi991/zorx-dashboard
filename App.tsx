@@ -25,6 +25,7 @@ import HRManagement from './components/HRManagement';
 import StaffRanking from './components/StaffRanking';
 import CompanyTargets from './components/CompanyTargets';
 import SettingsView from './components/SettingsView';
+import ClientDetails from './components/ClientDetails';
 
 const ADMINS = ['Thameem', 'Fazil', 'Ajzal', 'Salman', 'Ayisha'];
 const HR_STAFF = ['Jefla'];
@@ -77,7 +78,7 @@ const AccessRestricted = ({ title, message }: { title?: string, message?: string
 // --- Reusable Components ---
 const SidebarLink = ({ to, icon: Icon, label, onClick }: { to: string; icon: any; label: string; onClick?: () => void }) => {
   const location = useLocation();
-  const isActive = location.pathname === to;
+  const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
   return (
     <Link
       to={to}
@@ -688,6 +689,7 @@ function App() {
                 <Route path="/" element={<DashboardHome clients={clients} tasks={tasks} user={user} attendance={attendance} onMarkAttendance={handleMarkAttendance} isAdmin={isAdmin} />} />
                 <Route path="/tasks" element={<TasksPage tasks={tasks} clients={clients} campaigns={campaigns} onStatusChange={handleTaskStatusChange} onOpenNewTask={() => setIsTaskModalOpen(true)} onTaskClick={setSelectedTask} canCreateTask={canCreateTask} currentUser={user} isAdmin={isAdmin} />} />
                 <Route path="/clients" element={isAdmin ? <div className="space-y-6"><h2 className="text-2xl font-bold text-white">Client Management</h2><ClientList clients={clients} onAddClient={handleAddClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} /></div> : <AccessRestricted title="Client Database Locked" />} />
+                <Route path="/clients/:clientId" element={<ClientDetails clients={clients} tasks={tasks} campaigns={campaigns} onTaskClick={setSelectedTask} />} />
                 <Route path="/campaigns" element={<CampaignsView campaigns={campaigns} clients={clients} />} />
                 <Route path="/ranking" element={<StaffRanking users={users} tasks={tasks} ideas={ideas} />} />
                 <Route path="/targets" element={isAdmin ? <CompanyTargets targets={targets} onUpdateTarget={handleUpdateTarget} currentUser={user} isReadOnly={false} /> : <AccessRestricted title="Strategy & Targets Locked" />} />

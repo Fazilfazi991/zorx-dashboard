@@ -24,7 +24,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, onAddClient, onUpdateC
   const [status, setStatus] = useState<'Active' | 'Onboarding' | 'Paused'>('Active');
 
   const handleViewTasks = (clientId: string) => {
-    navigate(`/tasks?client=${clientId}`);
+    navigate(`/clients/${clientId}`);
   };
 
   const openAddModal = () => {
@@ -118,7 +118,11 @@ const ClientList: React.FC<ClientListProps> = ({ clients, onAddClient, onUpdateC
             </thead>
             <tbody className="divide-y divide-white/5">
               {clients.map((client) => (
-                <tr key={client.id} className="hover:bg-white/5 transition-colors group">
+                <tr 
+                  key={client.id} 
+                  className="hover:bg-white/5 transition-colors group cursor-pointer"
+                  onClick={() => handleViewTasks(client.id)}
+                >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img 
@@ -127,7 +131,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, onAddClient, onUpdateC
                         className="h-9 w-9 rounded-full bg-gray-800 object-cover ring-2 ring-white/10" 
                       />
                       <div>
-                        <div className="font-medium text-white">{client.name}</div>
+                        <div className="font-medium text-white group-hover:text-nexus-blueGlow transition-colors">{client.name}</div>
                         <div className="text-xs text-gray-500">{client.email}</div>
                       </div>
                     </div>
@@ -148,10 +152,10 @@ const ClientList: React.FC<ClientListProps> = ({ clients, onAddClient, onUpdateC
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2 items-center">
                       <button 
-                        onClick={() => handleViewTasks(client.id)}
+                        onClick={(e) => { e.stopPropagation(); handleViewTasks(client.id); }}
                         className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-gray-300 hover:bg-nexus-blue/20 hover:text-nexus-blueGlow transition-all"
                       >
-                        <span>Tasks</span>
+                        <span>Profile</span>
                         <ArrowRight className="h-3 w-3" />
                       </button>
                       
