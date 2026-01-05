@@ -75,6 +75,7 @@ export interface Task {
   priority: Priority;
   team: Team;
   dueDate: string;
+  frequency?: 'Once' | 'Daily' | 'Weekly'; // NEW FIELD for recurring tasks
   assignedTo?: string[];
   assignedBy?: string; // New field to track who assigned the task
   comments?: Comment[];

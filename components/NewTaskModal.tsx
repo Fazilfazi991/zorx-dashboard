@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { X, Calendar, Check, User, Paperclip, Trash2, FileText, Image as ImageIcon } from 'lucide-react';
+import { X, Calendar, Check, User, Paperclip, Trash2, FileText, Image as ImageIcon, Repeat } from 'lucide-react';
 import { Client, Priority, Status, Task, Team, Attachment, User as UserType } from '../types';
 
 interface NewTaskModalProps {
@@ -20,6 +20,7 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask,
   const [team, setTeam] = useState<Team>(Team.MARKETING);
   const [dueDate, setDueDate] = useState('');
   const [assignedTo, setAssignedTo] = useState<string[]>([]);
+  const [frequency, setFrequency] = useState<'Once' | 'Daily' | 'Weekly'>('Once');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,8 +39,9 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask,
       priority,
       team,
       dueDate,
+      frequency, // Include selected frequency
       assignedTo,
-      assignedBy: currentUser?.name || 'System', // Auto-set assignedBy
+      assignedBy: currentUser?.name || 'System',
       attachments,
       comments: [],
       history: [{
@@ -63,6 +65,7 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask,
     setTeam(Team.MARKETING);
     setDueDate('');
     setAssignedTo([]);
+    setFrequency('Once');
     setAttachments([]);
   };
 
@@ -201,15 +204,31 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask,
                 </select>
              </div>
              <div>
-                <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">Team</label>
-                <select 
-                   value={team}
-                   onChange={e => setTeam(e.target.value as Team)}
-                   className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-nexus-blue focus:outline-none"
-                >
-                   {Object.values(Team).map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">Frequency</label>
+                <div className="relative">
+                    <select 
+                       value={frequency}
+                       onChange={e => setFrequency(e.target.value as any)}
+                       className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-nexus-blue focus:outline-none appearance-none"
+                    >
+                       <option value="Once">One-time Task</option>
+                       <option value="Daily">Daily Recurring</option>
+                       <option value="Weekly">Weekly Recurring</option>
+                    </select>
+                    <Repeat className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                </div>
              </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">Team</label>
+            <select 
+                value={team}
+                onChange={e => setTeam(e.target.value as Team)}
+                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-nexus-blue focus:outline-none"
+            >
+                {Object.values(Team).map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
           </div>
 
           <div>

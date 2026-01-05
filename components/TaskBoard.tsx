@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Task, Status, Priority, Client, Campaign } from '../types';
-import { Clock, AlertCircle, CheckCircle2, Circle, ChevronDown, Rocket, MessageSquare, Paperclip, User } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle2, Circle, ChevronDown, Rocket, MessageSquare, Paperclip, User, Trash2, Repeat } from 'lucide-react';
 
 interface TaskBoardProps {
   tasks: Task[];
@@ -8,9 +9,11 @@ interface TaskBoardProps {
   campaigns: Campaign[];
   onStatusChange: (taskId: string, newStatus: Status) => void;
   onTaskClick?: (task: Task) => void;
+  onDeleteTask?: (taskId: string) => void;
+  canDelete?: boolean;
 }
 
-const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, clients, campaigns, onStatusChange, onTaskClick }) => {
+const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, clients, campaigns, onStatusChange, onTaskClick, onDeleteTask, canDelete }) => {
   const columns = [
     { id: Status.PENDING, label: 'To Do', icon: Circle, color: 'text-gray-400' },
     { id: Status.IN_PROGRESS, label: 'In Progress', icon: Clock, color: 'text-nexus-blueGlow' },
@@ -45,12 +48,13 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, clients, campaigns, onStat
               </div>
             </div>
             
-            <div className="flex-1 bg-white/5 rounded-xl p-4 space-y-3 border border-white/5 overflow-y-auto max-h-[600px]">
+            <div className="flex-1 bg-white/5 rounded-xl p-4 space-y-3 border border-white/5 overflow-y-auto max-h-[600px] custom-scrollbar">
               {colTasks.map((task) => {
                 const client = clients.find(c => c.id === task.clientId);
                 const campaign = campaigns.find(c => c.id === task.campaignId);
                 const commentsCount = task.comments?.length || 0;
                 const attachCount = task.attachments?.length || 0;
+                const isRecurring = task.frequency && task.frequency !== 'Once';
                 
                 return (
                   <div 
@@ -69,6 +73,11 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, clients, campaigns, onStat
                             <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border w-fit ${getPriorityColor(task.priority)}`}>
                               {task.priority}
                             </span>
+                            {isRecurring && (
+                                <span className="flex items-center gap-0.5 text-[10px] bg-white/10 text-gray-300 border border-white/20 px-1.5 py-0.5 rounded" title={`Recurring: ${task.frequency}`}>
+                                    <Repeat className="h-3 w-3" /> {task.frequency}
+                                </span>
+                            )}
                             {campaign && (
                                <span className="flex items-center gap-1 text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 px-1.5 py-0.5 rounded truncate max-w-[120px]">
                                  <Rocket className="h-3 w-3" />
@@ -78,19 +87,30 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, clients, campaigns, onStat
                          </div>
                       </div>
 
-                      {/* Status Edit Dropdown - Stop propagation to prevent opening modal */}
-                      <div className="relative opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                        <select
-                            value={task.status}
-                            onChange={(e) => onStatusChange(task.id, e.target.value as Status)}
-                            className="appearance-none bg-nexus-black border border-white/20 hover:border-nexus-blue/50 text-[10px] text-gray-300 py-1 pl-2 pr-6 rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-nexus-blue/50 w-24 transition-colors"
-                        >
-                            <option value={Status.PENDING}>To Do</option>
-                            <option value={Status.IN_PROGRESS}>In Progress</option>
-                            <option value={Status.REVIEW}>Review</option>
-                            <option value={Status.COMPLETED}>Done</option>
-                        </select>
-                        <ChevronDown className="absolute right-1.5 top-1.5 h-3 w-3 text-gray-500 pointer-events-none" />
+                      {/* Actions Group (Status & Delete) */}
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity items-start" onClick={(e) => e.stopPropagation()}>
+                        <div className="relative">
+                            <select
+                                value={task.status}
+                                onChange={(e) => onStatusChange(task.id, e.target.value as Status)}
+                                className="appearance-none bg-nexus-black border border-white/20 hover:border-nexus-blue/50 text-[10px] text-gray-300 py-1 pl-2 pr-6 rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-nexus-blue/50 w-24 transition-colors h-[26px]"
+                            >
+                                <option value={Status.PENDING}>To Do</option>
+                                <option value={Status.IN_PROGRESS}>In Progress</option>
+                                <option value={Status.REVIEW}>Review</option>
+                                <option value={Status.COMPLETED}>Done</option>
+                            </select>
+                            <ChevronDown className="absolute right-1.5 top-1.5 h-3 w-3 text-gray-500 pointer-events-none" />
+                        </div>
+                        {canDelete && onDeleteTask && (
+                           <button 
+                               onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
+                               className="p-1 bg-nexus-black/50 border border-white/20 rounded hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 text-gray-500 transition-all h-[26px] w-[26px] flex items-center justify-center"
+                               title="Delete Task"
+                           >
+                               <Trash2 className="h-3.5 w-3.5" />
+                           </button>
+                        )}
                       </div>
                     </div>
                     

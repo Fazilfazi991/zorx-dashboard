@@ -116,6 +116,7 @@ const TasksPage = ({
   onStatusChange, 
   onOpenNewTask, 
   onTaskClick,
+  onDeleteTask,
   canCreateTask,
   currentUser,
   isAdmin 
@@ -126,6 +127,7 @@ const TasksPage = ({
   onStatusChange: (id: string, status: Status) => void, 
   onOpenNewTask: () => void, 
   onTaskClick: (task: Task) => void,
+  onDeleteTask: (id: string) => void,
   canCreateTask: boolean,
   currentUser: User,
   isAdmin: boolean
@@ -170,7 +172,15 @@ const TasksPage = ({
         </div>
       </div>
       <div className="flex-1 min-h-0">
-         <TaskBoard tasks={filteredTasks} clients={clients} campaigns={campaigns} onStatusChange={onStatusChange} onTaskClick={onTaskClick} />
+         <TaskBoard 
+            tasks={filteredTasks} 
+            clients={clients} 
+            campaigns={campaigns} 
+            onStatusChange={onStatusChange} 
+            onTaskClick={onTaskClick} 
+            onDeleteTask={onDeleteTask}
+            canDelete={canCreateTask}
+         />
       </div>
     </div>
   );
@@ -524,13 +534,59 @@ function App() {
   };
 
   const handleAddOvertime = (rec: OvertimeRecord) => updateOvertime([rec, ...overtimeRecords]);
+  
   const handleTaskStatusChange = (id: string, status: Status) => {
-    const updated = tasks.map(t => t.id === id ? { ...t, status } : t);
-    updateTasks(updated);
+    let updatedTasks = [...tasks];
+    const taskIndex = updatedTasks.findIndex(t => t.id === id);
+    if (taskIndex === -1) return;
+
+    const task = updatedTasks[taskIndex];
+    const previousStatus = task.status;
+
+    // Update the status of the current task
+    updatedTasks[taskIndex] = { ...task, status };
+
+    // Check for Recurrence Logic (Only if moving TO Completed, and wasn't already Completed)
+    if (task.frequency && task.frequency !== 'Once' && status === Status.COMPLETED && previousStatus !== Status.COMPLETED) {
+        // Calculate next date
+        const nextDate = new Date(task.dueDate);
+        if (task.frequency === 'Daily') nextDate.setDate(nextDate.getDate() + 1);
+        if (task.frequency === 'Weekly') nextDate.setDate(nextDate.getDate() + 7);
+
+        const nextTask: Task = {
+            ...task,
+            id: `task-${Date.now()}`, // New ID
+            title: task.title, // Same title
+            status: Status.PENDING, // Reset status
+            dueDate: nextDate.toISOString().split('T')[0], // New Date
+            history: [{ // Reset history
+                id: `h-${Date.now()}`,
+                action: `Recurring task created from previous instance`,
+                author: 'System',
+                timestamp: new Date().toISOString()
+            }],
+            comments: [], // Clear comments
+            attachments: task.attachments, // Keep attachments as they might be templates
+            performance: undefined // Clear performance score
+        };
+        // Add new task to the list
+        updatedTasks = [nextTask, ...updatedTasks];
+    }
+
+    updateTasks(updatedTasks);
     if(selectedTask && selectedTask.id === id) setSelectedTask({...selectedTask, status});
   };
+
   const handleAddAITasks = (newT: Task[]) => updateTasks([...tasks, ...newT]);
   const handleAddTask = (t: Task) => updateTasks([t, ...tasks]);
+  const handleDeleteTask = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      const updated = tasks.filter(t => t.id !== id);
+      setTasks(updated); // Local state update
+      removeItem(KEYS.TASKS, id); // Supabase delete
+      if (!isSupabaseConfigured) persistCollection(KEYS.TASKS, updated); // Local storage sync
+    }
+  };
   const handleUpdateTask = (t: Task) => {
     updateTasks(tasks.map(ot => ot.id === t.id ? t : ot));
     setSelectedTask(t);
@@ -736,7 +792,7 @@ function App() {
             <div className="relative z-10 h-full">
               <Routes>
                 <Route path="/" element={<DashboardHome clients={clients} tasks={tasks} user={user} attendance={attendance} onMarkAttendance={handleMarkAttendance} isAdmin={isAdmin} />} />
-                <Route path="/tasks" element={<TasksPage tasks={tasks} clients={clients} campaigns={campaigns} onStatusChange={handleTaskStatusChange} onOpenNewTask={() => setIsTaskModalOpen(true)} onTaskClick={setSelectedTask} canCreateTask={canCreateTask} currentUser={user} isAdmin={isAdmin} />} />
+                <Route path="/tasks" element={<TasksPage tasks={tasks} clients={clients} campaigns={campaigns} onStatusChange={handleTaskStatusChange} onOpenNewTask={() => setIsTaskModalOpen(true)} onTaskClick={setSelectedTask} onDeleteTask={handleDeleteTask} canCreateTask={canCreateTask} currentUser={user} isAdmin={isAdmin} />} />
                 <Route path="/clients" element={isAdmin ? <div className="space-y-6"><h2 className="text-2xl font-bold text-white">Client Management</h2><ClientList clients={clients} onAddClient={handleAddClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} /></div> : <AccessRestricted title="Client Database Locked" />} />
                 <Route path="/clients/:clientId" element={<ClientDetails clients={clients} tasks={tasks} campaigns={campaigns} onTaskClick={setSelectedTask} />} />
                 <Route path="/ranking" element={<StaffRanking users={users} tasks={tasks} ideas={ideas} />} />
