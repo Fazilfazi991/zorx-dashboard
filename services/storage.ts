@@ -5,17 +5,18 @@ import {
 } from '../constants';
 
 // Unique keys for each data collection
+// Version bumped to v2 to ensure clean slate for production launch
 export const KEYS = {
-  USERS: 'zorx_db_users_v1',
-  CLIENTS: 'zorx_db_clients_v1',
-  TASKS: 'zorx_db_tasks_v1',
-  CAMPAIGNS: 'zorx_db_campaigns_v1',
-  IDEAS: 'zorx_db_ideas_v1',
-  LEAVES: 'zorx_db_leaves_v1',
-  ATTENDANCE: 'zorx_db_attendance_v1',
-  HOLIDAYS: 'zorx_db_holidays_v1',
-  OVERTIME: 'zorx_db_overtime_v1',
-  TARGETS: 'zorx_db_targets_v1'
+  USERS: 'zorx_db_users_v2',
+  CLIENTS: 'zorx_db_clients_v2',
+  TASKS: 'zorx_db_tasks_v2',
+  CAMPAIGNS: 'zorx_db_campaigns_v2',
+  IDEAS: 'zorx_db_ideas_v2',
+  LEAVES: 'zorx_db_leaves_v2',
+  ATTENDANCE: 'zorx_db_attendance_v2',
+  HOLIDAYS: 'zorx_db_holidays_v2',
+  OVERTIME: 'zorx_db_overtime_v2',
+  TARGETS: 'zorx_db_targets_v2'
 };
 
 // Generic loader

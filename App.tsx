@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, CheckSquare, Settings, Bell, Search, Command, Plus,
   BarChart3, TrendingUp, Megaphone, PenTool, Palette, Code2, X, Filter, Menu,
   Lightbulb, LogOut, Sparkles, Quote, Briefcase, CheckCircle2, ListTodo, CalendarDays,
-  Target, Trophy, Lock, ShieldAlert, LogOut as LogOutIcon, Loader2, Database, Clock
+  Target, Trophy, Lock, ShieldAlert, LogOut as LogOutIcon, Loader2, Database, Clock, ArrowRight
 } from 'lucide-react';
 import { MOCK_CLIENTS, MOCK_TASKS, MOCK_CAMPAIGNS, MOCK_IDEAS, MOTIVATIONAL_QUOTES, MOCK_LEAVES, MOCK_ATTENDANCE, MOCK_HOLIDAYS, MOCK_TARGETS, MOCK_USERS, MOCK_OVERTIME } from './constants';
 import { KEYS } from './services/storage';
@@ -271,8 +271,56 @@ const DashboardHome = ({
           </div>
       </div>
 
+      {isAdmin && (
+        <>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatsCard title="Active Clients" value={activeClients} trend="2" isPositive={true} icon={<Users className="h-6 w-6" />} color="green" />
+          <StatsCard title="Pending Tasks" value={totalPending} trend="5%" isPositive={false} icon={<CheckSquare className="h-6 w-6" />} color="blue" />
+        </div>
+
+        {/* RECENT ACTIVE CLIENTS */}
+        <div className="bg-nexus-card border border-white/10 rounded-xl overflow-hidden mt-6">
+           <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
+               <h3 className="font-bold text-white flex items-center gap-2">
+                   <Users className="h-5 w-5 text-nexus-blueGlow" />
+                   Recent Active Clients
+               </h3>
+               <button onClick={() => navigate('/clients')} className="text-xs text-nexus-blue hover:text-white flex items-center gap-1 transition-colors">
+                   View All <ArrowRight className="h-3 w-3" />
+               </button>
+           </div>
+           <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {clients.filter(c => c.status === 'Active').slice(0, 6).map(client => (
+                 <div key={client.id} onClick={() => navigate(`/clients/${client.id}`)} className="p-3 rounded-lg border border-white/5 bg-white/5 hover:border-nexus-blue/30 transition-all cursor-pointer group flex items-center gap-3">
+                     <img src={client.avatarUrl} alt={client.name} className="h-10 w-10 rounded-full bg-gray-800" />
+                     <div className="min-w-0 flex-1">
+                        <h4 className="font-medium text-white truncate group-hover:text-nexus-blueGlow transition-colors">{client.name}</h4>
+                        <p className="text-xs text-gray-500 truncate">{client.industry}</p>
+                     </div>
+                     <span className="h-2 w-2 rounded-full bg-nexus-greenGlow shrink-0"></span>
+                 </div>
+              ))}
+           </div>
+        </div>
+
+        {/* TEAM WORKLOAD */}
+        <div className="mt-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+               <BarChart3 className="h-5 w-5 text-nexus-blueGlow" />
+               Team Workload (Pending)
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <TeamCard label="Marketing" count={marketingPending} icon={Megaphone} color="text-blue-400" onClick={() => handleTeamClick(Team.MARKETING)} />
+              <TeamCard label="Content" count={contentPending} icon={PenTool} color="text-green-400" onClick={() => handleTeamClick(Team.CONTENT)} />
+              <TeamCard label="Creative" count={creativePending} icon={Palette} color="text-purple-400" onClick={() => handleTeamClick(Team.CREATIVE)} />
+              <TeamCard label="Development" count={devPending} icon={Code2} color="text-orange-400" onClick={() => handleTeamClick(Team.DEV)} />
+            </div>
+          </div>
+        </>
+      )}
+
       {/* MY WORKSPACE SECTION */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm mt-8">
         <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-4">
            <Briefcase className="h-5 w-5 text-nexus-blueGlow" />
            <h3 className="text-xl font-bold text-white">My Workspace</h3>
@@ -377,26 +425,6 @@ const DashboardHome = ({
         </div>
       </div>
 
-      {isAdmin && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <StatsCard title="Active Clients" value={activeClients} trend="2" isPositive={true} icon={<Users className="h-6 w-6" />} color="green" />
-            <StatsCard title="Global Pending Tasks" value={totalPending} trend="5%" isPositive={false} icon={<CheckSquare className="h-6 w-6" />} color="blue" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-               <BarChart3 className="h-5 w-5 text-nexus-blueGlow" />
-               Team Workload (Pending)
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <TeamCard label="Marketing" count={marketingPending} icon={Megaphone} color="text-blue-400" onClick={() => handleTeamClick(Team.MARKETING)} />
-              <TeamCard label="Content" count={contentPending} icon={PenTool} color="text-green-400" onClick={() => handleTeamClick(Team.CONTENT)} />
-              <TeamCard label="Creative" count={creativePending} icon={Palette} color="text-purple-400" onClick={() => handleTeamClick(Team.CREATIVE)} />
-              <TeamCard label="Development" count={devPending} icon={Code2} color="text-orange-400" onClick={() => handleTeamClick(Team.DEV)} />
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 };
@@ -731,4 +759,3 @@ function App() {
 }
 
 export default App;
-    

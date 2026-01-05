@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { User, LeaveRequest, AttendanceRecord, Holiday, OvertimeRecord } from '../types';
 import { 
   Users, Calendar as CalendarIcon, Clock, CheckCircle, XCircle, 
-  Plus, Search, Briefcase, Sun, CheckSquare, FileText, UserPlus, Mail, Lock, X, Timer, LogOut, Trash2
+  Plus, Search, Briefcase, Sun, CheckSquare, FileText, UserPlus, Mail, Lock, X, Timer, LogOut, Trash2, History
 } from 'lucide-react';
 
 interface HRManagementProps {
