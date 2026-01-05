@@ -1,22 +1,21 @@
-
 import { 
   MOCK_USERS, MOCK_CLIENTS, MOCK_TASKS, MOCK_CAMPAIGNS, MOCK_IDEAS, 
   MOCK_LEAVES, MOCK_ATTENDANCE, MOCK_HOLIDAYS, MOCK_TARGETS, MOCK_OVERTIME 
 } from '../constants';
 
 // Unique keys for each data collection
-// Version bumped to v2 to ensure clean slate for production launch
+// Version bumped to v3 for production launch to clear any testing data
 export const KEYS = {
-  USERS: 'zorx_db_users_v2',
-  CLIENTS: 'zorx_db_clients_v2',
-  TASKS: 'zorx_db_tasks_v2',
-  CAMPAIGNS: 'zorx_db_campaigns_v2',
-  IDEAS: 'zorx_db_ideas_v2',
-  LEAVES: 'zorx_db_leaves_v2',
-  ATTENDANCE: 'zorx_db_attendance_v2',
-  HOLIDAYS: 'zorx_db_holidays_v2',
-  OVERTIME: 'zorx_db_overtime_v2',
-  TARGETS: 'zorx_db_targets_v2'
+  USERS: 'zorx_db_users_v3',
+  CLIENTS: 'zorx_db_clients_v3',
+  TASKS: 'zorx_db_tasks_v3',
+  CAMPAIGNS: 'zorx_db_campaigns_v3',
+  IDEAS: 'zorx_db_ideas_v3',
+  LEAVES: 'zorx_db_leaves_v3',
+  ATTENDANCE: 'zorx_db_attendance_v3',
+  HOLIDAYS: 'zorx_db_holidays_v3',
+  OVERTIME: 'zorx_db_overtime_v3',
+  TARGETS: 'zorx_db_targets_v3'
 };
 
 // Generic loader

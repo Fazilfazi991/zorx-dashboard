@@ -1,4 +1,3 @@
-
 import { Client, Priority, Status, Task, Team, Campaign, Idea, User, LeaveRequest, AttendanceRecord, Holiday, QuarterlyTarget, QuarterlySalesData, OvertimeRecord } from './types';
 
 const ADMIN_PASSWORD = 'zorxdxb@1234';
