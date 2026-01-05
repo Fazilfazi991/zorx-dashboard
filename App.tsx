@@ -15,7 +15,6 @@ import { Client, Task, Status, Team, Campaign, Idea, User, Priority, LeaveReques
 import StatsCard from './components/StatsCard';
 import ClientList from './components/ClientList';
 import TaskBoard from './components/TaskBoard';
-import CampaignsView from './components/CampaignsView';
 import AICreator from './components/AICreator';
 import IdeaLab from './components/IdeaLab';
 import Login from './components/Login';
@@ -600,7 +599,6 @@ function App() {
                    <SidebarLink to="/" icon={LayoutDashboard} label="Dashboard" onClick={handleMobileLinkClick} />
                    <SidebarLink to="/tasks" icon={CheckSquare} label="Task Board" onClick={handleMobileLinkClick} />
                    <SidebarLink to="/clients" icon={Users} label="Clients" onClick={handleMobileLinkClick} />
-                   <SidebarLink to="/campaigns" icon={TrendingUp} label="Campaigns" onClick={handleMobileLinkClick} />
                    <SidebarLink to="/ranking" icon={Trophy} label="Staff Ranking" onClick={handleMobileLinkClick} />
                    <SidebarLink to="/targets" icon={Target} label="Company Targets" onClick={handleMobileLinkClick} />
                    <SidebarLink to="/hr" icon={CalendarDays} label="HR & Staff" onClick={handleMobileLinkClick} />
@@ -643,7 +641,6 @@ function App() {
             <SidebarLink to="/" icon={LayoutDashboard} label="Dashboard" />
             <SidebarLink to="/tasks" icon={CheckSquare} label="Task Board" />
             <SidebarLink to="/clients" icon={Users} label="Clients" />
-            <SidebarLink to="/campaigns" icon={TrendingUp} label="Campaigns" />
             <SidebarLink to="/ranking" icon={Trophy} label="Staff Ranking" />
             <SidebarLink to="/targets" icon={Target} label="Company Targets" />
             <SidebarLink to="/hr" icon={CalendarDays} label="HR & Staff" />
@@ -714,7 +711,6 @@ function App() {
                 <Route path="/tasks" element={<TasksPage tasks={tasks} clients={clients} campaigns={campaigns} onStatusChange={handleTaskStatusChange} onOpenNewTask={() => setIsTaskModalOpen(true)} onTaskClick={setSelectedTask} canCreateTask={canCreateTask} currentUser={user} isAdmin={isAdmin} />} />
                 <Route path="/clients" element={isAdmin ? <div className="space-y-6"><h2 className="text-2xl font-bold text-white">Client Management</h2><ClientList clients={clients} onAddClient={handleAddClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} /></div> : <AccessRestricted title="Client Database Locked" />} />
                 <Route path="/clients/:clientId" element={<ClientDetails clients={clients} tasks={tasks} campaigns={campaigns} onTaskClick={setSelectedTask} />} />
-                <Route path="/campaigns" element={<CampaignsView campaigns={campaigns} clients={clients} />} />
                 <Route path="/ranking" element={<StaffRanking users={users} tasks={tasks} ideas={ideas} />} />
                 <Route path="/targets" element={isAdmin ? <CompanyTargets targets={targets} onUpdateTarget={handleUpdateTarget} currentUser={user} isReadOnly={false} /> : <AccessRestricted title="Strategy & Targets Locked" />} />
                 <Route path="/hr" element={<HRManagement currentUser={user} users={users} leaves={leaves} attendance={attendance} holidays={holidays} onApplyLeave={handleApplyLeave} onUpdateLeaveStatus={handleUpdateLeaveStatus} onMarkAttendance={handleMarkAttendance} onAddHoliday={handleAddHoliday} onAddUser={handleAddUser} onDeleteUser={handleDeleteUser} overtimeRecords={overtimeRecords} onAddOvertime={handleAddOvertime} isAdmin={isAdmin} isHR={isHR} />} />
@@ -735,3 +731,4 @@ function App() {
 }
 
 export default App;
+    

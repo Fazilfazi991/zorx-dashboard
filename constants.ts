@@ -33,6 +33,7 @@ export const MOCK_USERS: User[] = [
   { id: 'u10', name: 'Ahalya', email: 'ahalya@zorx.agency' },
   { id: 'u11', name: 'Arya', email: 'arya@zorx.agency' },
   { id: 'u12', name: 'Nahidha', email: 'nahidha@zorx.agency' },
+  { id: 'u13', name: 'Anjana', email: 'anjana@zorx.agency' },
 ].map(u => ({
   ...u,
   password: ADMIN_NAMES.includes(u.name) ? ADMIN_PASSWORD : STAFF_PASSWORD
@@ -770,3 +771,4 @@ export const MOCK_Q1_2026_SALES_DATA: QuarterlySalesData = {
     { name: 'Clients Closed', jan: 3, feb: 4, mar: 3, total: 10, conversionRate: '15%' }
   ]
 };
+    
