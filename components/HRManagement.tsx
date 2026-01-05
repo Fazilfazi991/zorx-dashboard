@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, LeaveRequest, AttendanceRecord, Holiday, OvertimeRecord } from '../types';
 import { 
   Users, Calendar as CalendarIcon, Clock, CheckCircle, XCircle, 
-  Plus, Search, Briefcase, Sun, CheckSquare, FileText, UserPlus, Mail, Lock, X, Timer, LogOut
+  Plus, Search, Briefcase, Sun, CheckSquare, FileText, UserPlus, Mail, Lock, X, Timer, LogOut, Trash2
 } from 'lucide-react';
 
 interface HRManagementProps {
@@ -18,6 +18,7 @@ interface HRManagementProps {
   onMarkAttendance: (record: AttendanceRecord) => void;
   onAddHoliday: (holiday: Holiday) => void;
   onAddUser: (user: User) => void;
+  onDeleteUser?: (userId: string) => void;
   onAddOvertime?: (record: OvertimeRecord) => void;
   isAdmin: boolean;
   isHR: boolean;
@@ -27,7 +28,7 @@ type HRTab = 'staff' | 'leave' | 'attendance' | 'calendar' | 'overtime';
 
 const HRManagement: React.FC<HRManagementProps> = ({ 
   currentUser, users, leaves, attendance, holidays, overtimeRecords = [],
-  onApplyLeave, onUpdateLeaveStatus, onMarkAttendance, onAddHoliday, onAddUser, onAddOvertime,
+  onApplyLeave, onUpdateLeaveStatus, onMarkAttendance, onAddHoliday, onAddUser, onDeleteUser, onAddOvertime,
   isAdmin, isHR
 }) => {
   const [activeTab, setActiveTab] = useState<HRTab>('staff');
@@ -54,7 +55,20 @@ const HRManagement: React.FC<HRManagementProps> = ({
   const [otMins, setOtMins] = useState(0);
   const [otDesc, setOtDesc] = useState('');
 
-  const today = new Date().toISOString().split('T')[0];
+  // State to track "today" and auto-update at midnight
+  const [today, setToday] = useState(new Date().toISOString().split('T')[0]);
+
+  useEffect(() => {
+    // Check every minute if the date has changed (Midnight Reset)
+    const interval = setInterval(() => {
+        const current = new Date().toISOString().split('T')[0];
+        if (current !== today) {
+            setToday(current);
+        }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [today]);
+
   const myRecord = attendance.find(r => r.userId === currentUser.id && r.date === today);
   const hasCheckedIn = !!myRecord;
   const hasCheckedOut = !!myRecord?.checkOutTime;
@@ -258,25 +272,36 @@ const HRManagement: React.FC<HRManagementProps> = ({
                           const isOnLeave = leaves.some(l => l.userId === user.id && l.status === 'Approved' && today >= l.startDate && today <= l.endDate);
 
                           return (
-                            <div key={user.id} className="bg-nexus-card border border-white/10 rounded-xl p-4 flex items-center gap-4 hover:border-white/20 transition-all">
-                                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-nexus-blue/20 to-purple-500/20 flex items-center justify-center text-lg font-bold text-white border border-white/5">
-                                    {user.name.charAt(0)}
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-white">{user.name}</h3>
-                                    <p className="text-xs text-gray-500">{user.email}</p>
-                                    <div className="mt-2 flex items-center gap-2">
-                                        {isOnLeave ? (
-                                            <span className="text-[10px] bg-yellow-500/10 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/20">On Leave</span>
-                                        ) : userStatus ? (
-                                            <span className={`text-[10px] px-2 py-0.5 rounded border ${userStatus.status === 'Late' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'}`}>
-                                                Checked In ({userStatus.checkInTime})
-                                            </span>
-                                        ) : (
-                                            <span className="text-[10px] bg-gray-800 text-gray-500 px-2 py-0.5 rounded">Not Checked In</span>
-                                        )}
+                            <div key={user.id} className="bg-nexus-card border border-white/10 rounded-xl p-4 flex items-center justify-between hover:border-white/20 transition-all group">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-nexus-blue/20 to-purple-500/20 flex items-center justify-center text-lg font-bold text-white border border-white/5">
+                                        {user.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white">{user.name}</h3>
+                                        <p className="text-xs text-gray-500">{user.email}</p>
+                                        <div className="mt-2 flex items-center gap-2">
+                                            {isOnLeave ? (
+                                                <span className="text-[10px] bg-yellow-500/10 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/20">On Leave</span>
+                                            ) : userStatus ? (
+                                                <span className={`text-[10px] px-2 py-0.5 rounded border ${userStatus.status === 'Late' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'}`}>
+                                                    Checked In ({userStatus.checkInTime})
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] bg-gray-800 text-gray-500 px-2 py-0.5 rounded">Not Checked In</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
+                                {isAdmin && onDeleteUser && (
+                                    <button 
+                                        onClick={() => onDeleteUser(user.id)}
+                                        className="p-2 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                        title="Delete Staff"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                )}
                             </div>
                           );
                       })}

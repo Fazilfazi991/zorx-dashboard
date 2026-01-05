@@ -1,20 +1,42 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Zorx Agency Dashboard
 
-# Run and deploy your AI Studio app
+A high-performance, AI-powered digital marketing agency dashboard built with React, Vite, and Tailwind CSS.
 
-This contains everything you need to run your app locally.
+## 🚀 Deployment & Data Persistence
 
-View your app in AI Studio: https://ai.studio/apps/drive/1nvaJKx_nJrCHrcwe1SHaYfq9QsIC8vgF
+To ensure data is saved permanently when deployed to Vercel, this app uses **Supabase**.
 
-## Run Locally
+### 1. Set up Supabase
+1. Create a free account at [supabase.com](https://supabase.com).
+2. Create a new project.
+3. Go to the **SQL Editor** in the Supabase dashboard.
+4. Copy the contents of `supabase_setup.sql` from this project and run it. This creates the necessary tables.
 
-**Prerequisites:**  Node.js
+### 2. Connect to Vercel
+1. In your Supabase Project Settings > API, copy the **Project URL** and **anon / public Key**.
+2. Go to your Vercel Project Settings > Environment Variables.
+3. Add the following variables:
 
+```
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+API_KEY=your_google_gemini_api_key
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+4. Redeploy your project. The app will now automatically detect the keys and switch from Local Storage to Supabase Cloud Storage.
+
+## 🛠 Tech Stack
+
+- **Framework:** React + Vite
+- **Styling:** Tailwind CSS (configured via PostCSS)
+- **Icons:** Lucide React
+- **AI Integration:** Google Gemini API (`@google/genai`)
+- **Data Persistence:** LocalStorage (Default) or Supabase (Cloud).
+
+## 📂 Project Structure
+
+- **`App.tsx`**: Main application router and layout logic.
+- **`components/`**: Reusable UI components.
+- **`services/`**: 
+  - `db.ts`: Unified data access layer (Switches between Local/Cloud automatically).
+- **`types.ts`**: TypeScript definitions.

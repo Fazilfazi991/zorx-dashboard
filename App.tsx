@@ -184,6 +184,20 @@ const DashboardHome = ({
   clients: Client[], tasks: Task[], user: User, attendance: AttendanceRecord[], onMarkAttendance: (record: AttendanceRecord) => void, isAdmin: boolean
 }) => {
   const navigate = useNavigate();
+  // State to track "today" and auto-update at midnight
+  const [today, setToday] = useState(new Date().toISOString().split('T')[0]);
+
+  useEffect(() => {
+    // Check every minute if the date has changed
+    const interval = setInterval(() => {
+        const current = new Date().toISOString().split('T')[0];
+        if (current !== today) {
+            setToday(current);
+        }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [today]);
+
   const activeClients = clients.filter(c => c.status === 'Active').length;
   const totalPending = tasks.filter(t => t.status !== Status.COMPLETED).length;
 
@@ -196,7 +210,7 @@ const DashboardHome = ({
   const creativePending = tasks.filter(t => t.team === Team.CREATIVE && t.status !== Status.COMPLETED).length;
   const devPending = tasks.filter(t => t.team === Team.DEV && t.status !== Status.COMPLETED).length;
 
-  const today = new Date().toISOString().split('T')[0];
+  // Uses the reactive `today` state
   const myRecord = attendance.find(r => r.userId === user.id && r.date === today);
   const isCheckedIn = !!myRecord;
   const isCheckedOut = !!myRecord?.checkOutTime;
@@ -472,6 +486,16 @@ function App() {
   };
 
   const handleAddUser = (newUser: User) => updateUsers([...users, newUser]);
+  
+  const handleDeleteUser = (id: string) => {
+    if(window.confirm("Are you sure you want to delete this staff member? This action cannot be undone.")) {
+        const updated = users.filter(u => u.id !== id);
+        setUsers(updated);
+        removeItem(KEYS.USERS, id); // Specific delete for Supabase
+        if (!isSupabaseConfigured) persistCollection(KEYS.USERS, updated); // Local fallback
+    }
+  };
+
   const handleAddOvertime = (rec: OvertimeRecord) => updateOvertime([rec, ...overtimeRecords]);
   const handleTaskStatusChange = (id: string, status: Status) => {
     const updated = tasks.map(t => t.id === id ? { ...t, status } : t);
@@ -693,7 +717,7 @@ function App() {
                 <Route path="/campaigns" element={<CampaignsView campaigns={campaigns} clients={clients} />} />
                 <Route path="/ranking" element={<StaffRanking users={users} tasks={tasks} ideas={ideas} />} />
                 <Route path="/targets" element={isAdmin ? <CompanyTargets targets={targets} onUpdateTarget={handleUpdateTarget} currentUser={user} isReadOnly={false} /> : <AccessRestricted title="Strategy & Targets Locked" />} />
-                <Route path="/hr" element={<HRManagement currentUser={user} users={users} leaves={leaves} attendance={attendance} holidays={holidays} onApplyLeave={handleApplyLeave} onUpdateLeaveStatus={handleUpdateLeaveStatus} onMarkAttendance={handleMarkAttendance} onAddHoliday={handleAddHoliday} onAddUser={handleAddUser} overtimeRecords={overtimeRecords} onAddOvertime={handleAddOvertime} isAdmin={isAdmin} isHR={isHR} />} />
+                <Route path="/hr" element={<HRManagement currentUser={user} users={users} leaves={leaves} attendance={attendance} holidays={holidays} onApplyLeave={handleApplyLeave} onUpdateLeaveStatus={handleUpdateLeaveStatus} onMarkAttendance={handleMarkAttendance} onAddHoliday={handleAddHoliday} onAddUser={handleAddUser} onDeleteUser={handleDeleteUser} overtimeRecords={overtimeRecords} onAddOvertime={handleAddOvertime} isAdmin={isAdmin} isHR={isHR} />} />
                 <Route path="/ideas" element={<IdeaLab ideas={ideas} clients={clients} currentUser={user} onVote={handleVoteIdea} onAddIdea={handleAddIdea} />} />
                 <Route path="/settings" element={<SettingsView currentUser={user} onUpdatePassword={handleUpdatePassword} />} />
                 <Route path="*" element={<DashboardHome clients={clients} tasks={tasks} user={user} attendance={attendance} onMarkAttendance={handleMarkAttendance} isAdmin={isAdmin} />} />

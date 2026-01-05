@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { User } from '../types';
-import { Lock, Save, AlertCircle, CheckCircle, Database, RefreshCcw } from 'lucide-react';
+import { Lock, Save, AlertCircle, CheckCircle, Database, RefreshCcw, Cloud, CloudOff } from 'lucide-react';
 import { resetDatabase } from '../services/storage';
+import { isSupabaseConfigured } from '../services/supabase';
 
 interface SettingsViewProps {
   currentUser: User;
@@ -56,8 +57,34 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, onUpdatePasswo
           <div className="inline-block p-4 rounded-full bg-nexus-blue/10 text-nexus-blueGlow mb-4">
               <Lock className="h-8 w-8" />
           </div>
-          <h2 className="text-2xl font-bold text-white">Security Settings</h2>
-          <p className="text-gray-400 text-sm mt-1">Manage your account security and password.</p>
+          <h2 className="text-2xl font-bold text-white">Security & Data</h2>
+          <p className="text-gray-400 text-sm mt-1">Manage account security and database connections.</p>
+       </div>
+
+       {/* Connection Status Card */}
+       <div className={`border rounded-xl p-6 shadow-xl flex items-center justify-between ${isSupabaseConfigured ? 'bg-nexus-green/5 border-nexus-green/20' : 'bg-white/5 border-white/10'}`}>
+           <div className="flex items-center gap-4">
+               <div className={`p-3 rounded-full ${isSupabaseConfigured ? 'bg-nexus-green/10 text-nexus-greenGlow' : 'bg-gray-700 text-gray-400'}`}>
+                   {isSupabaseConfigured ? <Cloud className="h-6 w-6" /> : <CloudOff className="h-6 w-6" />}
+               </div>
+               <div>
+                   <h3 className="text-lg font-bold text-white">Cloud Sync Status</h3>
+                   <p className="text-sm text-gray-400">
+                       {isSupabaseConfigured 
+                         ? 'Connected to Supabase. Your data is synced to the cloud.' 
+                         : 'Using Local Storage. Data is only saved on this device.'}
+                   </p>
+               </div>
+           </div>
+           {isSupabaseConfigured ? (
+               <div className="flex items-center gap-2 text-nexus-greenGlow text-sm font-bold bg-nexus-green/10 px-3 py-1.5 rounded-full border border-nexus-green/20">
+                   <CheckCircle className="h-4 w-4" /> Online
+               </div>
+           ) : (
+               <div className="flex items-center gap-2 text-gray-400 text-sm font-bold bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                   Offline
+               </div>
+           )}
        </div>
 
        <div className="bg-nexus-card border border-white/10 rounded-xl p-8 shadow-xl">
@@ -120,19 +147,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, onUpdatePasswo
            </form>
        </div>
 
-       {/* Reset Database Zone */}
+       {/* Reset Database Zone - Only show if local or explicitly needed */}
        <div className="bg-nexus-card border border-red-500/20 rounded-xl p-8 shadow-xl mt-8">
            <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
                <Database className="h-5 w-5" /> Local Database Control
            </h3>
            <p className="text-sm text-gray-400 mb-6">
-               This application uses your browser's local storage as a database. If you experience issues or want to restore the original demo data (including default staff and tasks), use the button below.
+               This action clears the cache on this device. If you are connected to the cloud, data will be re-fetched on reload. If you are offline, all data will be reset to default.
            </p>
            <button 
              onClick={handleReset}
              className="px-6 py-2.5 bg-red-500/10 border border-red-500/30 text-red-400 font-bold rounded-lg hover:bg-red-500 hover:text-white transition-all flex items-center gap-2"
            >
-               <RefreshCcw className="h-4 w-4" /> Reset Database to Defaults
+               <RefreshCcw className="h-4 w-4" /> Reset Local Cache
            </button>
        </div>
     </div>
