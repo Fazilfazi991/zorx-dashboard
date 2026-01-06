@@ -1,8 +1,9 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, Calendar, Clock, Paperclip, Send, User, 
   MessageSquare, History, FileText, Image as ImageIcon, 
-  Trash2, Bell, CheckCircle2, Star, Trophy
+  Trash2, Bell, CheckCircle2, Star, Trophy, Pencil
 } from 'lucide-react';
 import { Task, Status, Priority, Client, Comment, Attachment, ActivityLog, User as UserType, TaskPerformance } from '../types';
 
@@ -10,6 +11,7 @@ interface TaskDetailModalProps {
   task: Task;
   isOpen: boolean;
   onClose: () => void;
+  onEdit?: () => void;
   clients: Client[];
   currentUser: UserType;
   onUpdateTask: (updatedTask: Task) => void;
@@ -18,7 +20,7 @@ interface TaskDetailModalProps {
 type Tab = 'comments' | 'files' | 'history' | 'score';
 
 const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ 
-  task, isOpen, onClose, clients, currentUser, onUpdateTask 
+  task, isOpen, onClose, onEdit, clients, currentUser, onUpdateTask 
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('comments');
   const [newComment, setNewComment] = useState('');
@@ -134,21 +136,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
     });
   };
 
-  const handleSetReminder = (hours: number) => {
-      setReminderHours(hours);
-      const log: ActivityLog = {
-        id: `log-${Date.now()}`,
-        action: hours > 0 ? `set reminder for ${hours} hours before` : 'removed reminder',
-        author: currentUser.name,
-        timestamp: new Date().toISOString()
-    };
-    onUpdateTask({
-        ...task,
-        reminderHoursBefore: hours,
-        history: [...(task.history || []), log]
-    });
-  };
-
   // Scoring Logic
   const calculateTaskScore = () => {
     // Weights: Completion 40%, On-Time 25%, Quality 20%, Teamwork 5%
@@ -216,6 +203,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                          <span className={`text-xs font-bold px-2 py-1 rounded border uppercase ${getPriorityColor(task.priority)}`}>
                             {task.priority}
                          </span>
+                         {onEdit && (
+                             <button onClick={onEdit} className="text-gray-400 hover:text-white p-1 rounded hover:bg-white/10" title="Edit Details">
+                                <Pencil className="h-4 w-4" />
+                             </button>
+                         )}
                          <button onClick={onClose} className="md:hidden text-gray-400"><X className="h-5 w-5"/></button>
                     </div>
                 </div>

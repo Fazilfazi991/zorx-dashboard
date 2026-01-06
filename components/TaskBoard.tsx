@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Task, Status, Priority, Client, Campaign } from '../types';
-import { Clock, AlertCircle, CheckCircle2, Circle, ChevronDown, Rocket, MessageSquare, Paperclip, User, Trash2, Repeat } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle2, Circle, ChevronDown, Rocket, MessageSquare, Paperclip, User, Trash2, Repeat, Pencil } from 'lucide-react';
 
 interface TaskBoardProps {
   tasks: Task[];
@@ -10,10 +10,11 @@ interface TaskBoardProps {
   onStatusChange: (taskId: string, newStatus: Status) => void;
   onTaskClick?: (task: Task) => void;
   onDeleteTask?: (taskId: string) => void;
-  canDelete?: boolean;
+  onEditTask?: (task: Task) => void;
+  canDelete?: boolean; // We treat this as canManage (Edit/Delete) based on user prompt context
 }
 
-const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, clients, campaigns, onStatusChange, onTaskClick, onDeleteTask, canDelete }) => {
+const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, clients, campaigns, onStatusChange, onTaskClick, onDeleteTask, onEditTask, canDelete }) => {
   const columns = [
     { id: Status.PENDING, label: 'To Do', icon: Circle, color: 'text-gray-400' },
     { id: Status.IN_PROGRESS, label: 'In Progress', icon: Clock, color: 'text-nexus-blueGlow' },
@@ -102,14 +103,27 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, clients, campaigns, onStat
                             </select>
                             <ChevronDown className="absolute right-1.5 top-1.5 h-3 w-3 text-gray-500 pointer-events-none" />
                         </div>
-                        {canDelete && onDeleteTask && (
-                           <button 
-                               onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
-                               className="p-1 bg-nexus-black/50 border border-white/20 rounded hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 text-gray-500 transition-all h-[26px] w-[26px] flex items-center justify-center"
-                               title="Delete Task"
-                           >
-                               <Trash2 className="h-3.5 w-3.5" />
-                           </button>
+                        {canDelete && (
+                           <>
+                                {onEditTask && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
+                                        className="p-1 bg-nexus-black/50 border border-white/20 rounded hover:border-nexus-blue/50 hover:bg-nexus-blue/10 hover:text-nexus-blueGlow text-gray-500 transition-all h-[26px] w-[26px] flex items-center justify-center"
+                                        title="Edit Task"
+                                    >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                    </button>
+                                )}
+                                {onDeleteTask && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
+                                        className="p-1 bg-nexus-black/50 border border-white/20 rounded hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 text-gray-500 transition-all h-[26px] w-[26px] flex items-center justify-center"
+                                        title="Delete Task"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                )}
+                           </>
                         )}
                       </div>
                     </div>

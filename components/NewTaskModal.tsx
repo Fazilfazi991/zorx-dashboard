@@ -1,18 +1,20 @@
 
-import React, { useState, useRef } from 'react';
-import { X, Calendar, Check, User, Paperclip, Trash2, FileText, Image as ImageIcon, Repeat } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Calendar, Check, User, Paperclip, Trash2, FileText, Image as ImageIcon, Repeat, Save } from 'lucide-react';
 import { Client, Priority, Status, Task, Team, Attachment, User as UserType } from '../types';
 
 interface NewTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddTask: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
+  taskToEdit?: Task | null;
   clients: Client[];
   currentUser: UserType | null;
   users: UserType[];
 }
 
-const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask, clients, currentUser, users }) => {
+const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask, onEditTask, taskToEdit, clients, currentUser, users }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [clientId, setClientId] = useState('');
@@ -24,35 +26,80 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask,
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+        if (taskToEdit) {
+            setTitle(taskToEdit.title);
+            setDescription(taskToEdit.description || '');
+            setClientId(taskToEdit.clientId);
+            setPriority(taskToEdit.priority);
+            setTeam(taskToEdit.team);
+            setDueDate(taskToEdit.dueDate);
+            setAssignedTo(taskToEdit.assignedTo || []);
+            setFrequency(taskToEdit.frequency || 'Once');
+            setAttachments(taskToEdit.attachments || []);
+        } else {
+            resetForm();
+        }
+    }
+  }, [isOpen, taskToEdit]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !clientId || !dueDate) return;
 
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      title,
-      description,
-      clientId,
-      status: Status.PENDING,
-      priority,
-      team,
-      dueDate,
-      frequency, // Include selected frequency
-      assignedTo,
-      assignedBy: currentUser?.name || 'System',
-      attachments,
-      comments: [],
-      history: [{
-        id: `h-${Date.now()}`,
-        action: 'created task',
-        author: currentUser?.name || 'System',
-        timestamp: new Date().toISOString()
-      }]
-    };
-
-    onAddTask(newTask);
+    if (taskToEdit && onEditTask) {
+        // Update Logic
+        const updatedTask: Task = {
+            ...taskToEdit,
+            title,
+            description,
+            clientId,
+            priority,
+            team,
+            dueDate,
+            frequency,
+            assignedTo,
+            attachments,
+            history: [
+                ...(taskToEdit.history || []),
+                {
+                    id: `h-${Date.now()}`,
+                    action: 'updated task details',
+                    author: currentUser?.name || 'System',
+                    timestamp: new Date().toISOString()
+                }
+            ]
+        };
+        onEditTask(updatedTask);
+    } else {
+        // Create Logic
+        const newTask: Task = {
+            id: `task-${Date.now()}`,
+            title,
+            description,
+            clientId,
+            status: Status.PENDING,
+            priority,
+            team,
+            dueDate,
+            frequency,
+            assignedTo,
+            assignedBy: currentUser?.name || 'System',
+            attachments,
+            comments: [],
+            history: [{
+                id: `h-${Date.now()}`,
+                action: 'created task',
+                author: currentUser?.name || 'System',
+                timestamp: new Date().toISOString()
+            }]
+        };
+        onAddTask(newTask);
+    }
+    
     resetForm();
     onClose();
   };
@@ -102,7 +149,7 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask,
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-nexus-card border border-white/10 rounded-xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center p-6 border-b border-white/10 bg-white/5 shrink-0">
-          <h3 className="text-xl font-bold text-white">Create New Task</h3>
+          <h3 className="text-xl font-bold text-white">{taskToEdit ? 'Edit Task' : 'Create New Task'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="h-5 w-5"/></button>
         </div>
         
@@ -234,7 +281,7 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask,
           <div>
             <div className="flex justify-between items-center mb-2">
                 <label className="block text-xs font-semibold uppercase text-gray-500">Assign Team Members</label>
-                <span className="text-xs text-nexus-blueGlow">Assigned By: {currentUser?.name || 'System'}</span>
+                <span className="text-xs text-nexus-blueGlow">Assigned By: {taskToEdit ? taskToEdit.assignedBy : currentUser?.name || 'System'}</span>
             </div>
             <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-black/30 rounded-lg border border-white/5">
               {users.map(user => (
@@ -255,7 +302,13 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask,
 
           <div className="pt-2 flex justify-end gap-3 shrink-0">
              <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancel</button>
-             <button type="submit" className="px-6 py-2 bg-nexus-blue text-black font-bold rounded-lg hover:bg-nexus-blueGlow transition-all">Create Task</button>
+             <button type="submit" className="px-6 py-2 bg-nexus-blue text-black font-bold rounded-lg hover:bg-nexus-blueGlow transition-all flex items-center gap-2">
+                 {taskToEdit ? (
+                     <><Save className="h-4 w-4" /> Update Task</>
+                 ) : (
+                     "Create Task"
+                 )}
+             </button>
           </div>
         </form>
       </div>

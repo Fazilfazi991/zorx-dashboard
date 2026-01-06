@@ -117,9 +117,11 @@ const TasksPage = ({
   onOpenNewTask, 
   onTaskClick,
   onDeleteTask,
+  onEditTask,
   canCreateTask,
   currentUser,
-  isAdmin 
+  isAdmin,
+  isHR
 }: { 
   tasks: Task[], 
   clients: Client[], 
@@ -128,9 +130,11 @@ const TasksPage = ({
   onOpenNewTask: () => void, 
   onTaskClick: (task: Task) => void,
   onDeleteTask: (id: string) => void,
+  onEditTask: (task: Task) => void,
   canCreateTask: boolean,
   currentUser: User,
-  isAdmin: boolean
+  isAdmin: boolean,
+  isHR: boolean
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const filterTeam = searchParams.get('team');
@@ -138,7 +142,7 @@ const TasksPage = ({
   const filterCampaign = searchParams.get('campaign');
 
   const filteredTasks = tasks.filter(t => {
-    if (!isAdmin && !t.assignedTo?.includes(currentUser.name)) return false;
+    if (!isAdmin && !isHR && !t.assignedTo?.includes(currentUser.name)) return false;
     if (filterTeam && t.team !== filterTeam) return false;
     if (filterClient && t.clientId !== filterClient) return false;
     if (filterCampaign && t.campaignId !== filterCampaign) return false;
@@ -179,6 +183,7 @@ const TasksPage = ({
             onStatusChange={onStatusChange} 
             onTaskClick={onTaskClick} 
             onDeleteTask={onDeleteTask}
+            onEditTask={onEditTask}
             canDelete={canCreateTask}
          />
       </div>
@@ -490,6 +495,7 @@ function App() {
   // UI State
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [notifications, setNotifications] = useState<string[]>([]);
@@ -589,8 +595,21 @@ function App() {
   };
   const handleUpdateTask = (t: Task) => {
     updateTasks(tasks.map(ot => ot.id === t.id ? t : ot));
-    setSelectedTask(t);
+    if (selectedTask && selectedTask.id === t.id) {
+        setSelectedTask(t);
+    }
   };
+
+  const handleEditTaskClick = (task: Task) => {
+      setTaskToEdit(task);
+      setIsTaskModalOpen(true);
+  };
+
+  const handleTaskModalClose = () => {
+      setIsTaskModalOpen(false);
+      setTaskToEdit(null);
+  };
+
   const handleAddClient = (c: Client) => updateClients([...clients, c]);
   const handleUpdateClient = (c: Client) => updateClients(clients.map(oc => oc.id === c.id ? c : oc));
   const handleDeleteClient = (id: string) => {
@@ -792,7 +811,20 @@ function App() {
             <div className="relative z-10 h-full">
               <Routes>
                 <Route path="/" element={<DashboardHome clients={clients} tasks={tasks} user={user} attendance={attendance} onMarkAttendance={handleMarkAttendance} isAdmin={isAdmin} />} />
-                <Route path="/tasks" element={<TasksPage tasks={tasks} clients={clients} campaigns={campaigns} onStatusChange={handleTaskStatusChange} onOpenNewTask={() => setIsTaskModalOpen(true)} onTaskClick={setSelectedTask} onDeleteTask={handleDeleteTask} canCreateTask={canCreateTask} currentUser={user} isAdmin={isAdmin} />} />
+                <Route path="/tasks" element={<TasksPage 
+                    tasks={tasks} 
+                    clients={clients} 
+                    campaigns={campaigns} 
+                    onStatusChange={handleTaskStatusChange} 
+                    onOpenNewTask={() => setIsTaskModalOpen(true)} 
+                    onTaskClick={setSelectedTask} 
+                    onDeleteTask={handleDeleteTask} 
+                    onEditTask={handleEditTaskClick}
+                    canCreateTask={canCreateTask} 
+                    currentUser={user} 
+                    isAdmin={isAdmin} 
+                    isHR={isHR}
+                />} />
                 <Route path="/clients" element={isAdmin ? <div className="space-y-6"><h2 className="text-2xl font-bold text-white">Client Management</h2><ClientList clients={clients} onAddClient={handleAddClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} /></div> : <AccessRestricted title="Client Database Locked" />} />
                 <Route path="/clients/:clientId" element={<ClientDetails clients={clients} tasks={tasks} campaigns={campaigns} onTaskClick={setSelectedTask} />} />
                 <Route path="/ranking" element={<StaffRanking users={users} tasks={tasks} ideas={ideas} />} />
@@ -808,8 +840,25 @@ function App() {
       </div>
 
       <AICreator isOpen={isAIModalOpen} onClose={() => setIsAIModalOpen(false)} clients={clients} onAddTasks={handleAddAITasks} />
-      <NewTaskModal isOpen={isTaskModalOpen} onClose={() => setIsTaskModalOpen(false)} onAddTask={handleAddTask} clients={clients} currentUser={user} users={users} />
-      {selectedTask && <TaskDetailModal task={selectedTask} isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} clients={clients} currentUser={user} onUpdateTask={handleUpdateTask} />}
+      <NewTaskModal 
+        isOpen={isTaskModalOpen} 
+        onClose={handleTaskModalClose} 
+        onAddTask={handleAddTask} 
+        onEditTask={handleUpdateTask}
+        taskToEdit={taskToEdit}
+        clients={clients} 
+        currentUser={user} 
+        users={users} 
+      />
+      {selectedTask && <TaskDetailModal 
+        task={selectedTask} 
+        isOpen={!!selectedTask} 
+        onClose={() => setSelectedTask(null)} 
+        onEdit={() => { setSelectedTask(null); handleEditTaskClick(selectedTask); }}
+        clients={clients} 
+        currentUser={user} 
+        onUpdateTask={handleUpdateTask} 
+      />}
     </Router>
   );
 }
