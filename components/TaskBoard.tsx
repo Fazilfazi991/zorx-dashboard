@@ -155,22 +155,30 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, clients, campaigns, onStat
                          )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 justify-end min-w-0 max-w-[50%]">
                         {task.team && (
-                          <span className="text-[10px] text-gray-400 bg-white/5 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] text-gray-400 bg-white/5 px-1.5 py-0.5 rounded shrink-0 hidden sm:inline-block">
                             {task.team}
                           </span>
                         )}
-                        <div className="flex -space-x-1">
-                          {task.assignedTo?.map((assignee, index) => (
-                             <div 
-                              key={index}
-                              className="h-5 w-5 rounded-full bg-nexus-blue/20 flex items-center justify-center text-[9px] text-nexus-blueGlow border border-nexus-blue/30 ring-1 ring-black" 
-                              title={`Assigned to ${assignee}`}
-                             >
-                               {assignee.charAt(0)}
-                             </div>
-                          ))}
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            {task.assignedTo && task.assignedTo.length > 0 && (
+                                <span className="text-[10px] text-gray-400 truncate max-w-[60px] hidden sm:block" title={task.assignedTo.join(', ')}>
+                                    {task.assignedTo[0]}
+                                    {task.assignedTo.length > 1 && ` +${task.assignedTo.length - 1}`}
+                                </span>
+                            )}
+                            <div className="flex -space-x-1 shrink-0">
+                            {task.assignedTo?.map((assignee, index) => (
+                                <div 
+                                key={index}
+                                className="h-5 w-5 rounded-full bg-nexus-blue/20 flex items-center justify-center text-[9px] text-nexus-blueGlow border border-nexus-blue/30 ring-1 ring-black" 
+                                title={`Assigned to ${assignee}`}
+                                >
+                                {assignee.charAt(0)}
+                                </div>
+                            ))}
+                            </div>
                         </div>
                       </div>
                     </div>

@@ -142,7 +142,9 @@ const TasksPage = ({
   const filterCampaign = searchParams.get('campaign');
 
   const filteredTasks = tasks.filter(t => {
+    // Allow viewing all tasks if Admin OR HR. Otherwise, filter by assignment.
     if (!isAdmin && !isHR && !t.assignedTo?.includes(currentUser.name)) return false;
+    
     if (filterTeam && t.team !== filterTeam) return false;
     if (filterClient && t.clientId !== filterClient) return false;
     if (filterCampaign && t.campaignId !== filterCampaign) return false;
@@ -336,7 +338,7 @@ const DashboardHome = ({
 
       {/* MY WORKSPACE SECTION */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm mt-8">
-        <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-4">
+        <div className="flex items-center gap-2 mb-6 border-b border-white/10 pb-4">
            <Briefcase className="h-5 w-5 text-nexus-blueGlow" />
            <h3 className="text-xl font-bold text-white">My Workspace</h3>
         </div>
