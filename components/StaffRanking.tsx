@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { User, Task, Idea } from '../types';
+import { User, Task, Idea, Status } from '../types';
 import { TrendingUp, Trophy, Star, Medal, Award, Info, Lightbulb } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 
@@ -38,33 +39,69 @@ const StaffRanking: React.FC<StaffRankingProps> = ({ users, tasks, ideas }) => {
 
   // Calculate Ranking Stats
   const rankings = users.map(user => {
-      // Find all completed tasks assigned to this user that have performance data
+      // Find all completed tasks assigned to this user
+      // Note: We include ALL completed tasks. If performance review is missing, we auto-calculate.
       const userTasks = tasks.filter(t => 
           t.assignedTo?.includes(user.name) && 
-          t.status === 'COMPLETED' && 
-          t.performance
+          t.status === Status.COMPLETED
       );
 
       const totalTasks = userTasks.length;
       
-      // Default task score to 0 if no tasks
       let avgTaskScore = 0; // Max 90
+      let completionAvg = 0;
+      let onTimeAvg = 0;
+      let qualityAvg = 0;
+      let teamworkAvg = 0;
       
       if (totalTasks > 0) {
-          const totalScoreSum = userTasks.reduce((acc, t) => acc + (t.performance?.taskScore || 0), 0);
+          const scores = userTasks.map(t => {
+              // Use saved performance data if available
+              if (t.performance) return t.performance;
+
+              // Fallback: Auto-calculate for unreviewed tasks (Live Update)
+              const completion = 100; // It is completed
+              
+              let onTime = 100;
+              // Attempt to find completion time from history
+              const completionLog = t.history?.slice().reverse().find(h => h.action.includes('to COMPLETED'));
+              // If we can't find log, we assume it was just completed (or leniently on time)
+              // For strictness, if no log, we could use current date if it's today, but let's be lenient 
+              // and assume OnTime if we can't prove otherwise, unless Due Date is clearly passed.
+              const completionDate = completionLog ? new Date(completionLog.timestamp) : new Date();
+              const dueDate = new Date(t.dueDate);
+              dueDate.setHours(23, 59, 59, 999);
+              
+              if (completionDate > dueDate) onTime = 50; // Late penalty
+
+              // Defaults for Manual Metrics (innocent until proven guilty)
+              const quality = 100; 
+              const teamwork = 50; // 'Some help' default
+
+              const taskScore = Math.round(
+                (completion * 0.40) +
+                (onTime * 0.25) +
+                (quality * 0.20) +
+                (teamwork * 0.05)
+              );
+
+              return { completion, onTime, quality, teamwork, taskScore };
+          });
+
+          const totalScoreSum = scores.reduce((acc, s) => acc + s.taskScore, 0);
           avgTaskScore = Math.round(totalScoreSum / totalTasks);
+
+          // Calculate metric averages for Radar Chart
+          completionAvg = Math.round(scores.reduce((acc, s) => acc + s.completion, 0) / totalTasks);
+          onTimeAvg = Math.round(scores.reduce((acc, s) => acc + s.onTime, 0) / totalTasks);
+          qualityAvg = Math.round(scores.reduce((acc, s) => acc + s.quality, 0) / totalTasks);
+          teamworkAvg = Math.round(scores.reduce((acc, s) => acc + s.teamwork, 0) / totalTasks);
       }
 
       // Add Idea Lab Score (Max 10)
       const ideaScore = getIdeaScore(user.name);
 
       const finalScore = avgTaskScore + ideaScore;
-
-      // Breakdown averages for radar chart
-      const completionAvg = totalTasks > 0 ? Math.round(userTasks.reduce((acc, t) => acc + (t.performance?.completion || 0), 0) / totalTasks) : 0;
-      const onTimeAvg = totalTasks > 0 ? Math.round(userTasks.reduce((acc, t) => acc + (t.performance?.onTime || 0), 0) / totalTasks) : 0;
-      const qualityAvg = totalTasks > 0 ? Math.round(userTasks.reduce((acc, t) => acc + (t.performance?.quality || 0), 0) / totalTasks) : 0;
-      const teamworkAvg = totalTasks > 0 ? Math.round(userTasks.reduce((acc, t) => acc + (t.performance?.teamwork || 0), 0) / totalTasks) : 0;
 
       let stars = 1;
       if (finalScore >= 90) stars = 5;
@@ -160,7 +197,7 @@ const StaffRanking: React.FC<StaffRankingProps> = ({ users, tasks, ideas }) => {
                            <div className="flex-1">
                                <h4 className="font-bold text-white text-lg">{user.name}</h4>
                                <div className="flex items-center gap-4 text-xs text-gray-400">
-                                   <span title="From Task Performance">{user.avgTaskScore} Task Pts</span>
+                                   <span title="From Task Performance (Includes auto-calc)">{user.avgTaskScore} Task Pts</span>
                                    <span className="text-gray-600">•</span>
                                    <span title="From Idea Lab Ranking" className="flex items-center gap-1 text-nexus-blueGlow">
                                       <Lightbulb className="h-3 w-3" /> {user.ideaScore} Idea Pts
@@ -252,3 +289,4 @@ const StaffRanking: React.FC<StaffRankingProps> = ({ users, tasks, ideas }) => {
 };
 
 export default StaffRanking;
+    
