@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { User, LeaveRequest, AttendanceRecord, Holiday, OvertimeRecord } from '../types';
 import { 
   Users, Calendar as CalendarIcon, Clock, CheckCircle, XCircle, 
-  Plus, Search, Briefcase, Sun, CheckSquare, FileText, UserPlus, Mail, Lock, X, Timer, LogOut, Trash2, History
+  Plus, Search, Briefcase, Sun, CheckSquare, FileText, UserPlus, Mail, Lock, X, Timer, LogOut, Trash2, History, Filter
 } from 'lucide-react';
 
 interface HRManagementProps {
@@ -54,6 +54,9 @@ const HRManagement: React.FC<HRManagementProps> = ({
   const [otHours, setOtHours] = useState(0);
   const [otMins, setOtMins] = useState(0);
   const [otDesc, setOtDesc] = useState('');
+
+  // --- Attendance Filter State ---
+  const [attendanceFilter, setAttendanceFilter] = useState('All');
 
   // State to track "today" and auto-update at midnight
   const [today, setToday] = useState(new Date().toISOString().split('T')[0]);
@@ -193,6 +196,15 @@ const HRManagement: React.FC<HRManagementProps> = ({
     setOtDesc('');
   };
 
+  // Filter logic
+  const filteredUsers = attendanceFilter === 'All' 
+    ? users 
+    : users.filter(u => u.id === attendanceFilter);
+
+  const filteredHistory = attendanceFilter === 'All' 
+    ? attendance 
+    : attendance.filter(a => a.userId === attendanceFilter);
+
   return (
     <div className="space-y-6 animate-fade-in h-full flex flex-col">
       {/* Header */}
@@ -309,7 +321,156 @@ const HRManagement: React.FC<HRManagementProps> = ({
               </div>
           )}
 
-          {/* LEAVE TAB */}
+          {/* ATTENDANCE TAB */}
+          {activeTab === 'attendance' && (
+              <div className="space-y-6">
+                  {/* Filter and Status */}
+                  <div className="flex flex-col md:flex-row gap-4">
+                     {/* My Status */}
+                     <div className="flex-1 bg-gradient-to-r from-nexus-blue/10 to-purple-500/10 border border-white/10 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h3 className="text-xl font-bold text-white mb-1">Today's Presence</h3>
+                            <p className="text-gray-400 text-sm">{new Date().toDateString()}</p>
+                            <p className="text-xs text-nexus-blueGlow mt-1">Standard Hours: 10:00 AM - 06:00 PM IST</p>
+                        </div>
+                        
+                        {!hasCheckedOut && (
+                            <button 
+                                onClick={handleCheckInOut}
+                                className={`px-6 py-3 rounded-lg font-bold text-lg flex items-center gap-2 transition-all shadow-lg ${
+                                    hasCheckedIn 
+                                    ? 'bg-nexus-card border border-red-500/30 text-red-400 hover:bg-red-500/10' 
+                                    : 'bg-nexus-blue text-black hover:bg-nexus-blueGlow hover:scale-105'
+                                }`}
+                            >
+                                {hasCheckedIn ? (
+                                    <><LogOut className="h-6 w-6" /> Check Out</>
+                                ) : (
+                                    <><Clock className="h-6 w-6" /> Check In</>
+                                )}
+                            </button>
+                        )}
+                        {hasCheckedOut && (
+                            <div className="px-6 py-3 rounded-lg font-bold text-lg flex items-center gap-2 bg-nexus-green/10 text-nexus-greenGlow border border-nexus-green/20">
+                                <CheckCircle className="h-6 w-6" /> Day Completed
+                            </div>
+                        )}
+                     </div>
+
+                     {/* Staff Filter (Admin/HR/Viewer) */}
+                     <div className="md:w-64 bg-nexus-card border border-white/10 rounded-xl p-6 flex flex-col justify-center">
+                         <label className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
+                             <Filter className="h-3 w-3" /> Filter Staff
+                         </label>
+                         <select 
+                             value={attendanceFilter}
+                             onChange={(e) => setAttendanceFilter(e.target.value)}
+                             className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-nexus-blue focus:outline-none cursor-pointer"
+                         >
+                             <option value="All">All Staff</option>
+                             {users.map(u => (
+                                 <option key={u.id} value={u.id}>{u.name}</option>
+                             ))}
+                         </select>
+                     </div>
+                  </div>
+
+                  {/* Daily Report */}
+                  <div className="bg-nexus-card border border-white/10 rounded-xl overflow-hidden">
+                      <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                          <h3 className="font-bold text-white">Daily Presence Report</h3>
+                          <span className="text-xs text-gray-500">
+                             {attendanceFilter === 'All' ? 'All Staff' : 'Filtered'} • {attendance.filter(a => a.date === today && (attendanceFilter === 'All' || a.userId === attendanceFilter)).length} Checked In
+                          </span>
+                      </div>
+                      <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm text-gray-400">
+                              <thead className="bg-white/5 text-xs uppercase text-gray-200">
+                                  <tr>
+                                      <th className="px-6 py-3">Staff</th>
+                                      <th className="px-6 py-3">Status</th>
+                                      <th className="px-6 py-3">Check In</th>
+                                      <th className="px-6 py-3">Check Out</th>
+                                  </tr>
+                              </thead>
+                              <tbody className="divide-y divide-white/5">
+                                  {filteredUsers.map(user => {
+                                      const record = attendance.find(a => a.userId === user.id && a.date === today);
+                                      const isOnLeave = leaves.some(l => l.userId === user.id && l.status === 'Approved' && today >= l.startDate && today <= l.endDate);
+                                      
+                                      return (
+                                          <tr key={user.id} className="hover:bg-white/5 transition-colors">
+                                              <td className="px-6 py-3 font-medium text-white flex items-center gap-3">
+                                                  <div className={`h-2 w-2 rounded-full ${isOnLeave ? 'bg-yellow-400' : record ? (record.checkOutTime ? 'bg-gray-500' : 'bg-nexus-greenGlow') : 'bg-red-500'}`} />
+                                                  {user.name}
+                                              </td>
+                                              <td className="px-6 py-3">
+                                                  {isOnLeave ? (
+                                                      <span className="text-yellow-400">On Leave</span>
+                                                  ) : record ? (
+                                                      <span className={`${record.status === 'Late' ? 'text-orange-400' : 'text-nexus-greenGlow'}`}>{record.status}</span>
+                                                  ) : (
+                                                      <span className="text-gray-600 italic">Absent</span>
+                                                  )}
+                                              </td>
+                                              <td className="px-6 py-3 font-mono text-xs">{record?.checkInTime || '-'}</td>
+                                              <td className="px-6 py-3 font-mono text-xs">{record?.checkOutTime || '-'}</td>
+                                          </tr>
+                                      );
+                                  })}
+                                  {filteredUsers.length === 0 && (
+                                      <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500">No staff found matching filter.</td></tr>
+                                  )}
+                              </tbody>
+                          </table>
+                      </div>
+                  </div>
+
+                  {/* History View */}
+                  {(isAdmin || isHR) && (
+                      <div className="bg-nexus-card border border-white/10 rounded-xl overflow-hidden mt-8">
+                          <div className="px-6 py-4 bg-white/5 border-b border-white/5">
+                              <h3 className="font-bold text-white flex items-center gap-2">
+                                  <History className="h-4 w-4" /> Full Attendance History
+                              </h3>
+                          </div>
+                          <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                              <table className="w-full text-left text-sm text-gray-400">
+                                  <thead className="bg-white/5 text-xs uppercase text-gray-200 sticky top-0">
+                                      <tr>
+                                          <th className="px-6 py-3">Date</th>
+                                          <th className="px-6 py-3">Name</th>
+                                          <th className="px-6 py-3">In</th>
+                                          <th className="px-6 py-3">Out</th>
+                                          <th className="px-6 py-3">Status</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-white/5">
+                                      {[...filteredHistory].reverse().map(record => (
+                                          <tr key={record.id} className="hover:bg-white/5 transition-colors">
+                                              <td className="px-6 py-2">{record.date}</td>
+                                              <td className="px-6 py-2 text-white">{record.userName}</td>
+                                              <td className="px-6 py-2 font-mono text-xs">{record.checkInTime}</td>
+                                              <td className="px-6 py-2 font-mono text-xs">{record.checkOutTime || '-'}</td>
+                                              <td className="px-6 py-2">
+                                                  <span className={`text-xs px-2 py-0.5 rounded border ${record.status === 'Late' ? 'border-orange-500/30 text-orange-400 bg-orange-500/10' : 'border-green-500/30 text-green-400 bg-green-500/10'}`}>
+                                                      {record.status}
+                                                  </span>
+                                              </td>
+                                          </tr>
+                                      ))}
+                                      {filteredHistory.length === 0 && (
+                                          <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">No history records found.</td></tr>
+                                      )}
+                                  </tbody>
+                              </table>
+                          </div>
+                      </div>
+                  )}
+              </div>
+          )}
+
+          {/* ... (Rest of tabs remain unchanged) ... */}
           {activeTab === 'leave' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Left: Application Form */}
@@ -453,128 +614,6 @@ const HRManagement: React.FC<HRManagementProps> = ({
               </div>
           )}
 
-          {/* ATTENDANCE TAB */}
-          {activeTab === 'attendance' && (
-              <div className="space-y-6">
-                  {/* My Status */}
-                  <div className="bg-gradient-to-r from-nexus-blue/10 to-purple-500/10 border border-white/10 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                      <div>
-                          <h3 className="text-xl font-bold text-white mb-1">Today's Presence</h3>
-                          <p className="text-gray-400 text-sm">{new Date().toDateString()}</p>
-                          <p className="text-xs text-nexus-blueGlow mt-1">Standard Hours: 10:00 AM - 06:00 PM IST</p>
-                      </div>
-                      
-                      {!hasCheckedOut && (
-                          <button 
-                            onClick={handleCheckInOut}
-                            className={`px-6 py-3 rounded-lg font-bold text-lg flex items-center gap-2 transition-all shadow-lg ${
-                                hasCheckedIn 
-                                ? 'bg-nexus-card border border-red-500/30 text-red-400 hover:bg-red-500/10' 
-                                : 'bg-nexus-blue text-black hover:bg-nexus-blueGlow hover:scale-105'
-                            }`}
-                          >
-                             {hasCheckedIn ? (
-                                 <><LogOut className="h-6 w-6" /> Check Out</>
-                             ) : (
-                                 <><Clock className="h-6 w-6" /> Check In</>
-                             )}
-                          </button>
-                      )}
-                      {hasCheckedOut && (
-                          <div className="px-6 py-3 rounded-lg font-bold text-lg flex items-center gap-2 bg-nexus-green/10 text-nexus-greenGlow border border-nexus-green/20">
-                              <CheckCircle className="h-6 w-6" /> Day Completed
-                          </div>
-                      )}
-                  </div>
-
-                  {/* Daily Report */}
-                  <div className="bg-nexus-card border border-white/10 rounded-xl overflow-hidden">
-                      <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
-                          <h3 className="font-bold text-white">Daily Presence Report</h3>
-                          <span className="text-xs text-gray-500">Total Checked In: {attendance.filter(a => a.date === today).length}</span>
-                      </div>
-                      <div className="overflow-x-auto">
-                          <table className="w-full text-left text-sm text-gray-400">
-                              <thead className="bg-white/5 text-xs uppercase text-gray-200">
-                                  <tr>
-                                      <th className="px-6 py-3">Staff</th>
-                                      <th className="px-6 py-3">Status</th>
-                                      <th className="px-6 py-3">Check In</th>
-                                      <th className="px-6 py-3">Check Out</th>
-                                  </tr>
-                              </thead>
-                              <tbody className="divide-y divide-white/5">
-                                  {users.map(user => {
-                                      const record = attendance.find(a => a.userId === user.id && a.date === today);
-                                      const isOnLeave = leaves.some(l => l.userId === user.id && l.status === 'Approved' && today >= l.startDate && today <= l.endDate);
-                                      
-                                      return (
-                                          <tr key={user.id} className="hover:bg-white/5 transition-colors">
-                                              <td className="px-6 py-3 font-medium text-white flex items-center gap-3">
-                                                  <div className={`h-2 w-2 rounded-full ${isOnLeave ? 'bg-yellow-400' : record ? (record.checkOutTime ? 'bg-gray-500' : 'bg-nexus-greenGlow') : 'bg-red-500'}`} />
-                                                  {user.name}
-                                              </td>
-                                              <td className="px-6 py-3">
-                                                  {isOnLeave ? (
-                                                      <span className="text-yellow-400">On Leave</span>
-                                                  ) : record ? (
-                                                      <span className={`${record.status === 'Late' ? 'text-orange-400' : 'text-nexus-greenGlow'}`}>{record.status}</span>
-                                                  ) : (
-                                                      <span className="text-gray-600 italic">Absent</span>
-                                                  )}
-                                              </td>
-                                              <td className="px-6 py-3 font-mono text-xs">{record?.checkInTime || '-'}</td>
-                                              <td className="px-6 py-3 font-mono text-xs">{record?.checkOutTime || '-'}</td>
-                                          </tr>
-                                      );
-                                  })}
-                              </tbody>
-                          </table>
-                      </div>
-                  </div>
-
-                  {/* History View (Admin Only) */}
-                  {(isAdmin || isHR) && (
-                      <div className="bg-nexus-card border border-white/10 rounded-xl overflow-hidden mt-8">
-                          <div className="px-6 py-4 bg-white/5 border-b border-white/5">
-                              <h3 className="font-bold text-white flex items-center gap-2">
-                                  <History className="h-4 w-4" /> Full Attendance History
-                              </h3>
-                          </div>
-                          <div className="max-h-60 overflow-y-auto custom-scrollbar">
-                              <table className="w-full text-left text-sm text-gray-400">
-                                  <thead className="bg-white/5 text-xs uppercase text-gray-200 sticky top-0">
-                                      <tr>
-                                          <th className="px-6 py-3">Date</th>
-                                          <th className="px-6 py-3">Name</th>
-                                          <th className="px-6 py-3">In</th>
-                                          <th className="px-6 py-3">Out</th>
-                                          <th className="px-6 py-3">Status</th>
-                                      </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-white/5">
-                                      {[...attendance].reverse().map(record => (
-                                          <tr key={record.id} className="hover:bg-white/5 transition-colors">
-                                              <td className="px-6 py-2">{record.date}</td>
-                                              <td className="px-6 py-2 text-white">{record.userName}</td>
-                                              <td className="px-6 py-2 font-mono text-xs">{record.checkInTime}</td>
-                                              <td className="px-6 py-2 font-mono text-xs">{record.checkOutTime || '-'}</td>
-                                              <td className="px-6 py-2">
-                                                  <span className={`text-xs px-2 py-0.5 rounded border ${record.status === 'Late' ? 'border-orange-500/30 text-orange-400 bg-orange-500/10' : 'border-green-500/30 text-green-400 bg-green-500/10'}`}>
-                                                      {record.status}
-                                                  </span>
-                                              </td>
-                                          </tr>
-                                      ))}
-                                  </tbody>
-                              </table>
-                          </div>
-                      </div>
-                  )}
-              </div>
-          )}
-
-          {/* CALENDAR TAB */}
           {activeTab === 'calendar' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2 space-y-4">
@@ -585,7 +624,6 @@ const HRManagement: React.FC<HRManagementProps> = ({
                           )}
                       </div>
 
-                      {/* Simple List View for Calendar Events */}
                       <div className="bg-nexus-card border border-white/10 rounded-xl overflow-hidden">
                           {/* Holidays */}
                           <div className="px-4 py-2 bg-white/5 text-xs font-bold uppercase text-gray-500">Holidays</div>
@@ -661,7 +699,6 @@ const HRManagement: React.FC<HRManagementProps> = ({
               </div>
           )}
 
-          {/* OVERTIME TAB */}
           {activeTab === 'overtime' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Left: Application Form (Restricted to Jefla/Admins) */}

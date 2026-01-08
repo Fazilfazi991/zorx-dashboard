@@ -595,8 +595,14 @@ function App() {
       if (!isSupabaseConfigured) persistCollection(KEYS.TASKS, updated); // Local storage sync
     }
   };
+  
+  // Update task logic refined to ensure selectedTask remains consistent with the main list
   const handleUpdateTask = (t: Task) => {
-    updateTasks(tasks.map(ot => ot.id === t.id ? t : ot));
+    const newTasks = tasks.map(ot => ot.id === t.id ? t : ot);
+    updateTasks(newTasks);
+    
+    // Explicitly update selectedTask to the exact object reference we just created.
+    // This prevents stale state in modals if the list update lags or if references mismatch.
     if (selectedTask && selectedTask.id === t.id) {
         setSelectedTask(t);
     }
