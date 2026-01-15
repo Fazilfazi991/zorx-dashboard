@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { MOCK_CLIENTS, MOCK_TASKS, MOCK_CAMPAIGNS, MOCK_IDEAS, MOTIVATIONAL_QUOTES, MOCK_LEAVES, MOCK_ATTENDANCE, MOCK_HOLIDAYS, MOCK_TARGETS, MOCK_USERS, MOCK_OVERTIME } from './constants';
 import { KEYS } from './services/storage';
-import { fetchCollection, persistCollection, removeItem } from './services/db';
+import { fetchCollection, persistCollection, persistItem, removeItem } from './services/db';
 import { isSupabaseConfigured } from './services/supabase';
 import { Client, Task, Status, Team, Campaign, Idea, User, Priority, LeaveRequest, AttendanceRecord, Holiday, QuarterlyTarget, OvertimeRecord } from './types';
 import StatsCard from './components/StatsCard';
@@ -128,7 +128,7 @@ const TasksPage = ({
   campaigns: Campaign[],
   onStatusChange: (id: string, status: Status) => void, 
   onOpenNewTask: () => void, 
-  onTaskClick: (task: Task) => void,
+  onTaskClick: (taskId: string) => void,
   onDeleteTask: (id: string) => void,
   onEditTask: (task: Task) => void,
   canCreateTask: boolean,
@@ -183,7 +183,7 @@ const TasksPage = ({
             clients={clients} 
             campaigns={campaigns} 
             onStatusChange={onStatusChange} 
-            onTaskClick={onTaskClick} 
+            onTaskClick={(t) => onTaskClick(t.id)} 
             onDeleteTask={onDeleteTask}
             onEditTask={onEditTask}
             canDelete={canCreateTask}
@@ -499,13 +499,28 @@ function App() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<string[]>([]);
+
+  // Live Sync / Polling for Tasks
+  useEffect(() => {
+    if (!user) return;
+    const pollInterval = setInterval(async () => {
+      // Poll tasks specifically to keep comments/status in sync
+      const latestTasks = await fetchCollection(KEYS.TASKS, tasks);
+      // Simple length/content check could optimize, but React handles diffing well
+      if (latestTasks.length > 0) {
+        setTasks(latestTasks);
+      }
+    }, 3000); // 3 seconds polling for near-realtime updates
+
+    return () => clearInterval(pollInterval);
+  }, [user]);
 
   // Update wrappers that handle both State and DB persistence
   const updateUsers = (newData: User[]) => { setUsers(newData); persistCollection(KEYS.USERS, newData); };
   const updateClients = (newData: Client[]) => { setClients(newData); persistCollection(KEYS.CLIENTS, newData); };
-  const updateTasks = (newData: Task[]) => { setTasks(newData); persistCollection(KEYS.TASKS, newData); };
+  // NOTE: Task updates are handled granularly via persistItem now to prevent race conditions
   const updateCampaigns = (newData: Campaign[]) => { setCampaigns(newData); persistCollection(KEYS.CAMPAIGNS, newData); };
   const updateIdeas = (newData: Idea[]) => { setIdeas(newData); persistCollection(KEYS.IDEAS, newData); };
   const updateLeaves = (newData: LeaveRequest[]) => { setLeaves(newData); persistCollection(KEYS.LEAVES, newData); };
@@ -518,6 +533,9 @@ function App() {
   const isAdmin = !!user && ADMINS.includes(user.name);
   const isHR = !!user && HR_STAFF.includes(user.name);
   const canCreateTask = isAdmin || isHR;
+  
+  // Derived Data for Modal
+  const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) || null : null;
 
   // Handlers
   const handleLogin = (u: User) => setUser(u);
@@ -555,6 +573,9 @@ function App() {
 
         // Update the status of the current task
         updatedTasks[taskIndex] = { ...task, status };
+        
+        // Persist the specific task immediately
+        persistItem(KEYS.TASKS, updatedTasks[taskIndex]);
 
         // Check for Recurrence Logic (Only if moving TO Completed, and wasn't already Completed)
         if (task.frequency && task.frequency !== 'Once' && status === Status.COMPLETED && previousStatus !== Status.COMPLETED) {
@@ -581,18 +602,26 @@ function App() {
             };
             // Add new task to the list
             updatedTasks = [nextTask, ...updatedTasks];
+            // Persist the NEW task as well
+            persistItem(KEYS.TASKS, nextTask);
         }
         
-        // Persist
-        persistCollection(KEYS.TASKS, updatedTasks);
         return updatedTasks;
     });
-
-    if(selectedTask && selectedTask.id === id) setSelectedTask({...selectedTask, status});
   };
 
-  const handleAddAITasks = (newT: Task[]) => updateTasks([...tasks, ...newT]);
-  const handleAddTask = (t: Task) => updateTasks([t, ...tasks]);
+  const handleAddAITasks = (newT: Task[]) => {
+      // Add multiple tasks
+      setTasks([...tasks, ...newT]);
+      // Persist each new task individually to ensure no overwrites of existing data
+      newT.forEach(t => persistItem(KEYS.TASKS, t));
+  };
+
+  const handleAddTask = (t: Task) => {
+      setTasks([t, ...tasks]);
+      persistItem(KEYS.TASKS, t);
+  };
+
   const handleDeleteTask = (id: string) => {
     if (window.confirm('Are you sure you want to delete this task?')) {
       const updated = tasks.filter(t => t.id !== id);
@@ -605,18 +634,13 @@ function App() {
   // Update task logic refined to ensure selectedTask remains consistent with the main list
   const handleUpdateTask = (t: Task) => {
     // Use functional update to ensure we always have the latest state, preventing race conditions
-    // where comments added in quick succession might overwrite each other if `tasks` was stale.
     setTasks(currentTasks => {
         const newTasks = currentTasks.map(ot => ot.id === t.id ? t : ot);
-        persistCollection(KEYS.TASKS, newTasks);
         return newTasks;
     });
     
-    // Explicitly update selectedTask to the exact object reference we just created.
-    // This prevents stale state in modals if the list update lags or if references mismatch.
-    if (selectedTask && selectedTask.id === t.id) {
-        setSelectedTask(t);
-    }
+    // CRITICAL: Save only the SINGLE ITEM to avoid overwriting other tasks in the DB
+    persistItem(KEYS.TASKS, t);
   };
 
   const handleEditTaskClick = (task: Task) => {
@@ -836,7 +860,7 @@ function App() {
                     campaigns={campaigns} 
                     onStatusChange={handleTaskStatusChange} 
                     onOpenNewTask={() => setIsTaskModalOpen(true)} 
-                    onTaskClick={setSelectedTask} 
+                    onTaskClick={(id) => setSelectedTaskId(id)} 
                     onDeleteTask={handleDeleteTask} 
                     onEditTask={handleEditTaskClick}
                     canCreateTask={canCreateTask} 
@@ -845,7 +869,7 @@ function App() {
                     isHR={isHR}
                 />} />
                 <Route path="/clients" element={isAdmin ? <div className="space-y-6"><h2 className="text-2xl font-bold text-white">Client Management</h2><ClientList clients={clients} onAddClient={handleAddClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} /></div> : <AccessRestricted title="Client Database Locked" />} />
-                <Route path="/clients/:clientId" element={<ClientDetails clients={clients} tasks={tasks} campaigns={campaigns} onTaskClick={setSelectedTask} />} />
+                <Route path="/clients/:clientId" element={<ClientDetails clients={clients} tasks={tasks} campaigns={campaigns} onTaskClick={(t) => setSelectedTaskId(t.id)} />} />
                 <Route path="/ranking" element={<StaffRanking users={users} tasks={tasks} ideas={ideas} />} />
                 <Route path="/targets" element={isAdmin ? <CompanyTargets targets={targets} onUpdateTarget={handleUpdateTarget} currentUser={user} isReadOnly={false} /> : <AccessRestricted title="Strategy & Targets Locked" />} />
                 <Route path="/hr" element={<HRManagement currentUser={user} users={users} leaves={leaves} attendance={attendance} holidays={holidays} onApplyLeave={handleApplyLeave} onUpdateLeaveStatus={handleUpdateLeaveStatus} onMarkAttendance={handleMarkAttendance} onAddHoliday={handleAddHoliday} onAddUser={handleAddUser} onDeleteUser={handleDeleteUser} overtimeRecords={overtimeRecords} onAddOvertime={handleAddOvertime} isAdmin={isAdmin} isHR={isHR} />} />
@@ -872,8 +896,8 @@ function App() {
       {selectedTask && <TaskDetailModal 
         task={selectedTask} 
         isOpen={!!selectedTask} 
-        onClose={() => setSelectedTask(null)} 
-        onEdit={() => { setSelectedTask(null); handleEditTaskClick(selectedTask); }}
+        onClose={() => setSelectedTaskId(null)} 
+        onEdit={() => { setSelectedTaskId(null); handleEditTaskClick(selectedTask); }}
         clients={clients} 
         currentUser={user} 
         onUpdateTask={handleUpdateTask} 

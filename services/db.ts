@@ -52,9 +52,7 @@ export const fetchCollection = async <T>(key: string, fallback: T): Promise<T> =
   }
 };
 
-// Generic DB Save (Insert/Upsert)
-// We save the entire collection state. In a real highly scalable app, we'd save individual rows.
-// For this size, syncing the array is safer and easier to implement.
+// Generic DB Save (Insert/Upsert Collection)
 export const persistCollection = async <T extends { id: string }[]>(key: string, data: T) => {
   if (isSupabaseConfigured && supabase) {
     const tableName = TABLES[key];
@@ -71,20 +69,44 @@ export const persistCollection = async <T extends { id: string }[]>(key: string,
     if (error) {
       console.error(`Supabase error saving ${tableName}:`, error);
     }
-    
-    // OPTIONAL: Delete items that are no longer in the list?
-    // For simplicity in this version, we are doing upserts. 
-    // Deletions would require a separate logic, but usually we just mark status='deleted'
   } else {
     saveLocal(key, data);
   }
 };
 
-// Specific Delete function for Supabase since Upsert won't remove rows
+// Save SINGLE Item (Critical for preventing race conditions/overwrites)
+export const persistItem = async <T extends { id: string }>(key: string, item: T) => {
+  if (isSupabaseConfigured && supabase) {
+    const tableName = TABLES[key];
+    const { error } = await supabase.from(tableName).upsert({
+      id: item.id,
+      data: item
+    });
+    if (error) console.error(`Supabase error saving item to ${tableName}:`, error);
+  } else {
+    // Local Storage Fallback: Read all, update one, save all
+    const all = loadLocal<T[]>(key, []);
+    const exists = all.find((i: any) => i.id === item.id);
+    let updated;
+    if (exists) {
+      updated = all.map((i: any) => i.id === item.id ? item : i);
+    } else {
+      updated = [...all, item];
+    }
+    saveLocal(key, updated);
+  }
+};
+
+// Specific Delete function
 export const removeItem = async (key: string, id: string) => {
   if (isSupabaseConfigured && supabase) {
     const tableName = TABLES[key];
     await supabase.from(tableName).delete().eq('id', id);
+  } else {
+    // Local storage handles delete by getting the filtered array passed to persistCollection usually,
+    // but if we need explicit delete helper:
+    const all = loadLocal<any[]>(key, []);
+    const updated = all.filter(i => i.id !== id);
+    saveLocal(key, updated);
   }
-  // Local storage handles delete by saving the filtered array in App.tsx, so no action needed here
 };
