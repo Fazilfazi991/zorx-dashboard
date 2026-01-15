@@ -544,44 +544,50 @@ function App() {
   const handleAddOvertime = (rec: OvertimeRecord) => updateOvertime([rec, ...overtimeRecords]);
   
   const handleTaskStatusChange = (id: string, status: Status) => {
-    let updatedTasks = [...tasks];
-    const taskIndex = updatedTasks.findIndex(t => t.id === id);
-    if (taskIndex === -1) return;
+    // Functional update to avoid stale state in rapid updates
+    setTasks(currentTasks => {
+        let updatedTasks = [...currentTasks];
+        const taskIndex = updatedTasks.findIndex(t => t.id === id);
+        if (taskIndex === -1) return currentTasks;
 
-    const task = updatedTasks[taskIndex];
-    const previousStatus = task.status;
+        const task = updatedTasks[taskIndex];
+        const previousStatus = task.status;
 
-    // Update the status of the current task
-    updatedTasks[taskIndex] = { ...task, status };
+        // Update the status of the current task
+        updatedTasks[taskIndex] = { ...task, status };
 
-    // Check for Recurrence Logic (Only if moving TO Completed, and wasn't already Completed)
-    if (task.frequency && task.frequency !== 'Once' && status === Status.COMPLETED && previousStatus !== Status.COMPLETED) {
-        // Calculate next date
-        const nextDate = new Date(task.dueDate);
-        if (task.frequency === 'Daily') nextDate.setDate(nextDate.getDate() + 1);
-        if (task.frequency === 'Weekly') nextDate.setDate(nextDate.getDate() + 7);
+        // Check for Recurrence Logic (Only if moving TO Completed, and wasn't already Completed)
+        if (task.frequency && task.frequency !== 'Once' && status === Status.COMPLETED && previousStatus !== Status.COMPLETED) {
+            // Calculate next date
+            const nextDate = new Date(task.dueDate);
+            if (task.frequency === 'Daily') nextDate.setDate(nextDate.getDate() + 1);
+            if (task.frequency === 'Weekly') nextDate.setDate(nextDate.getDate() + 7);
 
-        const nextTask: Task = {
-            ...task,
-            id: `task-${Date.now()}`, // New ID
-            title: task.title, // Same title
-            status: Status.PENDING, // Reset status
-            dueDate: nextDate.toISOString().split('T')[0], // New Date
-            history: [{ // Reset history
-                id: `h-${Date.now()}`,
-                action: `Recurring task created from previous instance`,
-                author: 'System',
-                timestamp: new Date().toISOString()
-            }],
-            comments: [], // Clear comments
-            attachments: task.attachments, // Keep attachments as they might be templates
-            performance: undefined // Clear performance score
-        };
-        // Add new task to the list
-        updatedTasks = [nextTask, ...updatedTasks];
-    }
+            const nextTask: Task = {
+                ...task,
+                id: `task-${Date.now()}`, // New ID
+                title: task.title, // Same title
+                status: Status.PENDING, // Reset status
+                dueDate: nextDate.toISOString().split('T')[0], // New Date
+                history: [{ // Reset history
+                    id: `h-${Date.now()}`,
+                    action: `Recurring task created from previous instance`,
+                    author: 'System',
+                    timestamp: new Date().toISOString()
+                }],
+                comments: [], // Clear comments
+                attachments: task.attachments, // Keep attachments as they might be templates
+                performance: undefined // Clear performance score
+            };
+            // Add new task to the list
+            updatedTasks = [nextTask, ...updatedTasks];
+        }
+        
+        // Persist
+        persistCollection(KEYS.TASKS, updatedTasks);
+        return updatedTasks;
+    });
 
-    updateTasks(updatedTasks);
     if(selectedTask && selectedTask.id === id) setSelectedTask({...selectedTask, status});
   };
 
@@ -598,8 +604,13 @@ function App() {
   
   // Update task logic refined to ensure selectedTask remains consistent with the main list
   const handleUpdateTask = (t: Task) => {
-    const newTasks = tasks.map(ot => ot.id === t.id ? t : ot);
-    updateTasks(newTasks);
+    // Use functional update to ensure we always have the latest state, preventing race conditions
+    // where comments added in quick succession might overwrite each other if `tasks` was stale.
+    setTasks(currentTasks => {
+        const newTasks = currentTasks.map(ot => ot.id === t.id ? t : ot);
+        persistCollection(KEYS.TASKS, newTasks);
+        return newTasks;
+    });
     
     // Explicitly update selectedTask to the exact object reference we just created.
     // This prevents stale state in modals if the list update lags or if references mismatch.

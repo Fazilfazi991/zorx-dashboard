@@ -53,7 +53,7 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask,
     if (taskToEdit && onEditTask) {
         // Update Logic
         const updatedTask: Task = {
-            ...taskToEdit,
+            ...taskToEdit, // Spread existing fields first
             title,
             description,
             clientId,
@@ -63,6 +63,9 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose, onAddTask,
             frequency,
             assignedTo,
             attachments,
+            // CRITICAL: Explicitly preserve data that isn't editable in this modal but might exist
+            comments: taskToEdit.comments, 
+            performance: taskToEdit.performance,
             history: [
                 ...(taskToEdit.history || []),
                 {
