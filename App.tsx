@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, CheckSquare, Settings, Bell, Search, Command, Plus,
@@ -115,7 +115,7 @@ const TasksPage = ({
   campaigns,
   onStatusChange, 
   onOpenNewTask, 
-  onTaskClick,
+  onTaskClick, 
   onDeleteTask,
   onEditTask,
   canCreateTask,
@@ -508,17 +508,22 @@ function App() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<string[]>([]);
 
+  // Keep a ref to tasks for polling to avoid stale closures
+  const tasksRef = useRef(tasks);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+
   // Live Sync / Polling for Tasks
   useEffect(() => {
     if (!user) return;
     const pollInterval = setInterval(async () => {
-      // Poll tasks specifically to keep comments/status in sync
-      const latestTasks = await fetchCollection(KEYS.TASKS, tasks);
-      // Simple length/content check could optimize, but React handles diffing well
-      if (latestTasks.length > 0) {
-        setTasks(latestTasks);
+      // Use ref to get current tasks for fallback
+      const latestTasks = await fetchCollection(KEYS.TASKS, tasksRef.current);
+      // Only update if there's a difference to prevent unnecessary renders/flickering,
+      // though React handles identity checks.
+      if (JSON.stringify(latestTasks) !== JSON.stringify(tasksRef.current)) {
+          setTasks(latestTasks);
       }
-    }, 3000); // 3 seconds polling for near-realtime updates
+    }, 3000); 
 
     return () => clearInterval(pollInterval);
   }, [user]);
@@ -568,34 +573,37 @@ function App() {
   const handleAddOvertime = (rec: OvertimeRecord) => updateOvertime([rec, ...overtimeRecords]);
   
   const handleTaskStatusChange = (id: string, status: Status) => {
-    // Functional update to avoid stale state in rapid updates
-    setTasks(currentTasks => {
-        let updatedTasks = [...currentTasks];
-        const taskIndex = updatedTasks.findIndex(t => t.id === id);
-        if (taskIndex === -1) return currentTasks;
+    // Determine the task and if recurrence is needed BEFORE state update to avoid side effects in setter
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
 
-        const task = updatedTasks[taskIndex];
-        const previousStatus = task.status;
+    const previousStatus = task.status;
+    if (status === previousStatus) return;
 
-        // Update the status of the current task
-        updatedTasks[taskIndex] = { ...task, status };
-        
-        // Persist the specific task immediately
-        persistItem(KEYS.TASKS, updatedTasks[taskIndex]);
+    let nextTask: Task | null = null;
 
-        // Check for Recurrence Logic (Only if moving TO Completed, and wasn't already Completed)
-        if (task.frequency && task.frequency !== 'Once' && status === Status.COMPLETED && previousStatus !== Status.COMPLETED) {
-            // Calculate next date
-            const nextDate = new Date(task.dueDate);
-            if (task.frequency === 'Daily') nextDate.setDate(nextDate.getDate() + 1);
-            if (task.frequency === 'Weekly') nextDate.setDate(nextDate.getDate() + 7);
+    // Check for Recurrence Logic (Only if moving TO Completed, and wasn't already Completed)
+    if (task.frequency && task.frequency !== 'Once' && status === Status.COMPLETED && previousStatus !== Status.COMPLETED) {
+        // Calculate next date
+        const nextDate = new Date(task.dueDate);
+        if (task.frequency === 'Daily') nextDate.setDate(nextDate.getDate() + 1);
+        if (task.frequency === 'Weekly') nextDate.setDate(nextDate.getDate() + 7);
+        const nextDateStr = nextDate.toISOString().split('T')[0];
 
-            const nextTask: Task = {
+        // DUPLICATION GUARD: Check if a task with same title and date already exists
+        const exists = tasks.some(t => 
+            t.title === task.title && 
+            t.dueDate === nextDateStr && 
+            t.id !== task.id // Don't check against self
+        );
+
+        if (!exists) {
+            nextTask = {
                 ...task,
                 id: `task-${Date.now()}`, // New ID
                 title: task.title, // Same title
                 status: Status.PENDING, // Reset status
-                dueDate: nextDate.toISOString().split('T')[0], // New Date
+                dueDate: nextDateStr, // New Date
                 history: [{ // Reset history
                     id: `h-${Date.now()}`,
                     action: `Recurring task created from previous instance`,
@@ -606,14 +614,25 @@ function App() {
                 attachments: task.attachments, // Keep attachments as they might be templates
                 performance: undefined // Clear performance score
             };
-            // Add new task to the list
-            updatedTasks = [nextTask, ...updatedTasks];
-            // Persist the NEW task as well
-            persistItem(KEYS.TASKS, nextTask);
         }
-        
-        return updatedTasks;
+    }
+
+    const updatedTask = { ...task, status };
+
+    // Update Local State
+    setTasks(prev => {
+        const newTasks = prev.map(t => t.id === id ? updatedTask : t);
+        if (nextTask) {
+            return [nextTask, ...newTasks];
+        }
+        return newTasks;
     });
+
+    // Persist to DB (Side Effects)
+    persistItem(KEYS.TASKS, updatedTask);
+    if (nextTask) {
+        persistItem(KEYS.TASKS, nextTask);
+    }
   };
 
   const handleAddAITasks = (newT: Task[]) => {
