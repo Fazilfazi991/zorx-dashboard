@@ -241,6 +241,12 @@ const DashboardHome = ({
     if (isCheckedIn) {
        onMarkAttendance({ ...myRecord, checkOutTime: istTime });
     } else {
+        // Restriction: Cannot check in before 10 AM
+        if (istHour < 10) {
+            alert("Office hours start at 10:00 AM. You cannot check in yet.");
+            return;
+        }
+
         let status: 'Present' | 'Late' = 'Present';
         if (istHour > 10 || (istHour === 10 && istMinute > 0)) status = 'Late';
         const record: AttendanceRecord = {

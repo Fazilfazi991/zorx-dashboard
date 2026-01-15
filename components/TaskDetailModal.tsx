@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, Calendar, Clock, Paperclip, Send, User, 
   MessageSquare, History, FileText, Image as ImageIcon, 
-  Trash2, Bell, CheckCircle2, Star, Trophy, Pencil
+  Trash2, Bell, CheckCircle2, Star, Trophy, Pencil, Check
 } from 'lucide-react';
 import { Task, Status, Priority, Client, Comment, Attachment, ActivityLog, User as UserType, TaskPerformance } from '../types';
 
@@ -24,8 +24,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('comments');
   const [newComment, setNewComment] = useState('');
-  const [reminderHours, setReminderHours] = useState<number>(task.reminderHoursBefore || 0);
   
+  // Comment Editing State
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+
   // Scoring State
   const [completion, setCompletion] = useState(task.performance?.completion || 0);
   const [onTime, setOnTime] = useState(task.performance?.onTime || 100);
@@ -59,10 +62,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   }, [task.status, task.dueDate]);
 
   useEffect(() => {
-    if (activeTab === 'comments' && isOpen) {
+    if (activeTab === 'comments' && isOpen && !editingCommentId) {
         commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [task.comments, activeTab, isOpen]);
+  }, [task.comments, activeTab, isOpen, editingCommentId]);
 
   if (!isOpen) return null;
 
@@ -105,6 +108,33 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
       history: [...(task.history || []), log]
     });
     setNewComment('');
+  };
+
+  // --- Edit Comment Handlers ---
+  const handleEditClick = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditText(comment.text);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditText('');
+  };
+
+  const handleSaveEdit = (commentId: string) => {
+    if (!editText.trim()) return;
+
+    const updatedComments = task.comments?.map(c => 
+      c.id === commentId ? { ...c, text: editText } : c
+    );
+
+    onUpdateTask({
+      ...task,
+      comments: updatedComments
+    });
+
+    setEditingCommentId(null);
+    setEditText('');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -318,20 +348,64 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                             {(!task.comments || task.comments.length === 0) && (
                                 <div className="text-center text-gray-500 mt-10 text-sm">No comments yet. Start the conversation!</div>
                             )}
-                            {task.comments?.map(comment => (
-                                <div key={comment.id} className={`flex gap-3 ${comment.author === currentUser.name ? 'flex-row-reverse' : ''}`}>
-                                    <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold shrink-0">
-                                        {comment.author.charAt(0)}
-                                    </div>
-                                    <div className={`p-3 rounded-xl max-w-[80%] text-sm ${comment.author === currentUser.name ? 'bg-nexus-blue/20 text-white rounded-tr-none' : 'bg-white/10 text-gray-200 rounded-tl-none'}`}>
-                                        <div className="flex justify-between items-baseline gap-4 mb-1">
-                                            <span className={`font-bold text-xs ${comment.author === currentUser.name ? 'text-nexus-blueGlow' : 'text-gray-400'}`}>{comment.author}</span>
-                                            <span className="text-[10px] opacity-50">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            {task.comments?.map(comment => {
+                                const isEditing = editingCommentId === comment.id;
+                                const isAuthor = comment.author === currentUser.name;
+
+                                return (
+                                    <div key={comment.id} className={`flex gap-3 ${isAuthor ? 'flex-row-reverse' : ''} group`}>
+                                        <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold shrink-0">
+                                            {comment.author.charAt(0)}
                                         </div>
-                                        {comment.text}
+                                        <div className={`p-3 rounded-xl max-w-[80%] text-sm min-w-[120px] ${isAuthor ? 'bg-nexus-blue/20 text-white rounded-tr-none' : 'bg-white/10 text-gray-200 rounded-tl-none'}`}>
+                                            <div className="flex justify-between items-baseline gap-4 mb-1">
+                                                <span className={`font-bold text-xs ${isAuthor ? 'text-nexus-blueGlow' : 'text-gray-400'}`}>{comment.author}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] opacity-50">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                                    {isAuthor && !isEditing && (
+                                                        <button 
+                                                            onClick={() => handleEditClick(comment)}
+                                                            className="text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            title="Edit"
+                                                        >
+                                                            <Pencil className="h-3 w-3" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            
+                                            {isEditing ? (
+                                                <div className="mt-1">
+                                                    <textarea 
+                                                        value={editText}
+                                                        onChange={(e) => setEditText(e.target.value)}
+                                                        className="w-full bg-black/40 border border-white/20 rounded p-2 text-white text-sm focus:outline-none focus:border-nexus-blue mb-2 resize-none"
+                                                        rows={2}
+                                                    />
+                                                    <div className="flex gap-2 justify-end">
+                                                        <button 
+                                                            onClick={handleCancelEdit}
+                                                            className="p-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                                                            title="Cancel"
+                                                        >
+                                                            <X className="h-3.5 w-3.5" />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleSaveEdit(comment.id)}
+                                                            className="p-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                                                            title="Save"
+                                                        >
+                                                            <Check className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="whitespace-pre-wrap">{comment.text}</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                             <div ref={commentsEndRef} />
                         </div>
                         <form onSubmit={handleAddComment} className="p-4 border-t border-white/10 bg-white/5">

@@ -120,6 +120,12 @@ const HRManagement: React.FC<HRManagementProps> = ({
 
     } else {
         // --- CHECK IN LOGIC ---
+        // Restriction: Cannot check in before 10 AM
+        if (istHour < 10) {
+            alert("Office hours start at 10:00 AM. You cannot check in yet.");
+            return;
+        }
+
         // Normal hours: 10am to 6pm IST.
         // Late if strictly after 10:00 AM.
         let status: 'Present' | 'Late' = 'Present';
